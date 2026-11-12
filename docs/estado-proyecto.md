@@ -18,7 +18,8 @@ El [alcance del MVP](alcance-mvp.md) recoge las reglas iniciales y las funciones
 | GitHub | [Plantilla de PR](../.github/pull_request_template.md) y [CI](../.github/workflows/ci.yml) para backend y frontend. La plantilla de issues sigue propuesta. |
 | Aplicación | El [flujo local](../README.md#desarrollo-local) permite iniciar sesión, marcar entrada y salida y consultar el historial propio. La [salida](casos-de-uso.md#cu-03-registrar-salida) comprueba que la jornada mostrada sigue abierta. Alembic crea el esquema y el comando de demo carga una cuenta ficticia. |
 | Administración | El [alta inicial](../README.md#gestión-administrativa) habilita la primera cuenta administrativa. Su vista permite crear y editar sedes, registrar y reasignar trabajadores y desactivarlos cuando su jornada esté cerrada. |
+| Historial administrativo | El administrador puede [consultar jornadas](casos-de-uso.md#cu-07-consultar-asistencia-del-personal) abiertas y cerradas por fecha de entrada, trabajador y sede registrada. El período usa la zona horaria de la empresa. |
 
 ## Siguiente paso
 
-El siguiente hito es el historial administrativo de jornadas abiertas y cerradas, con filtros por trabajador, sede y fecha de entrada en la zona horaria de la empresa. El despliegue de la demo pública se definirá en un cambio posterior.
+El alcance funcional del MVP está implementado en local. El siguiente hito es preparar el despliegue de la demo pública.

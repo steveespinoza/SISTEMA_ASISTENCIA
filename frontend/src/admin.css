@@ -117,8 +117,45 @@
   margin: 0 0 0.55rem;
 }
 
+.history-filters,
+.history-filters > div {
+  display: grid;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.history-filters input {
+  min-width: 0;
+}
+
+.admin-history .shift-card,
+.history-period {
+  overflow-wrap: anywhere;
+}
+
+.history-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+@media (min-width: 36rem) {
+  .history-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (min-width: 48rem) {
   .admin-grid {
     grid-template-columns: minmax(16rem, 1fr) minmax(0, 1.5fr);
+  }
+}
+
+@media (min-width: 58rem) {
+  .history-filters {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }

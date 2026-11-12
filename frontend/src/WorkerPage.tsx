@@ -10,18 +10,14 @@ import {
   type Shift,
 } from "./attendance-api";
 import { getPendingMark, savePendingMark } from "./pending-mark";
+import { companyTimeFormatter } from "./shift-format";
+import { ShiftDetails } from "./ShiftDetails";
 
 type Props = {
   username: string;
   csrfToken: string;
   onSessionProblem: () => void;
 };
-
-function durationLabel(seconds: number): string {
-  if (seconds < 60) return seconds + " s";
-  const minutes = Math.floor(seconds / 60);
-  return Math.floor(minutes / 60) + " h " + (minutes % 60) + " min";
-}
 
 function History({ shifts, formatter }: { shifts: Shift[]; formatter: Intl.DateTimeFormat }) {
   return (
@@ -35,13 +31,7 @@ function History({ shifts, formatter }: { shifts: Shift[]; formatter: Intl.DateT
                 <strong>{shift.sede}</strong>
                 <span className="shift-state">{shift.salida ? "Cerrada" : "Abierta"}</span>
               </div>
-              <dl className="shift-details">
-                <div><dt>Entrada</dt><dd>{formatter.format(new Date(shift.entrada))}</dd></div>
-                <div><dt>Salida</dt><dd>{shift.salida ? formatter.format(new Date(shift.salida)) : "Pendiente"}</dd></div>
-                {shift.duracion_segundos !== null && (
-                  <div><dt>Duración</dt><dd>{durationLabel(shift.duracion_segundos)}</dd></div>
-                )}
-              </dl>
+              <ShiftDetails shift={shift} formatter={formatter} />
             </li>
           ))}
         </ul>
@@ -122,12 +112,7 @@ export function WorkerPage({ username, csrfToken, onSessionProblem }: Props) {
     }
   }
 
-  const formatter = new Intl.DateTimeFormat("es-PE", {
-    timeZone: timezone,
-    dateStyle: "medium",
-    timeStyle: "short",
-    hourCycle: "h23",
-  });
+  const formatter = companyTimeFormatter(timezone);
   const confirmationTime = confirmation?.operacion === "salida"
     ? confirmation.jornada.salida
     : confirmation?.jornada.entrada;

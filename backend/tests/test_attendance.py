@@ -1,17 +1,19 @@
 import os
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta
 from threading import Barrier, Event
 from time import monotonic, sleep
 from uuid import UUID, uuid4
+from zoneinfo import ZoneInfo
 
 import pytest
 from sqlalchemy import delete, func, select, text
 from sqlalchemy.exc import IntegrityError
 from werkzeug.security import generate_password_hash
 
-from asistencia import attendance, create_app
+from asistencia import attendance, create_app, history
+from asistencia.attendance_service import shift_details
 from asistencia.models import Account, MarkRequest, Shift, Site, Worker
 
 TEST_PASSWORD = "contrasena-ficticia-para-pruebas"
@@ -493,6 +495,122 @@ def test_deactivation_waits_for_concurrent_entry(app, sample, monkeypatch):
     assert entry.result().status_code == 200
     assert deactivation.result().status_code == 409
     assert worker.get("/api/asistencia").json["activo"] is True
+
+
+def test_admin_history_filters_by_local_entry_date_and_recorded_site(
+    app, sample, monkeypatch
+):
+    monkeypatch.setattr(history, "PAGE_SIZE", 2)
+    monday = datetime(2026, 11, 16, 5, tzinfo=UTC)
+    tuesday = monday + timedelta(days=1)
+    first_id, overnight_id, open_id, tuesday_id = (uuid4() for _ in range(4))
+    with app.extensions["database_sessions"].begin() as db:
+        worker = db.get_one(Worker, sample.worker_id)
+        worker.sede_id = sample.next_site_id
+        worker.activo = False
+        db.add_all(
+            [
+                Shift(
+                    trabajador_id=worker.id,
+                    sede_id=sample.site_id,
+                    entrada=monday - timedelta(minutes=1),
+                    salida=monday,
+                ),
+                Shift(
+                    id=first_id,
+                    trabajador_id=worker.id,
+                    sede_id=sample.site_id,
+                    entrada=monday,
+                    salida=monday + timedelta(hours=1),
+                ),
+                Shift(
+                    id=overnight_id,
+                    trabajador_id=worker.id,
+                    sede_id=sample.site_id,
+                    entrada=tuesday - timedelta(hours=2),
+                    salida=tuesday + timedelta(hours=6),
+                ),
+                Shift(
+                    id=open_id,
+                    trabajador_id=sample.other_worker_id,
+                    sede_id=sample.next_site_id,
+                    entrada=monday + timedelta(hours=4),
+                ),
+                Shift(
+                    id=tuesday_id,
+                    trabajador_id=worker.id,
+                    sede_id=sample.next_site_id,
+                    entrada=tuesday + timedelta(hours=6),
+                    salida=tuesday + timedelta(hours=7),
+                ),
+            ]
+        )
+
+    path = "/api/admin/jornadas"
+    period = {"desde": "2026-11-16", "hasta": "2026-11-16"}
+    admin = app.test_client()
+    assert admin.get(path, query_string=period).status_code == 401
+    worker_client = app.test_client()
+    login(worker_client, sample.other_username)
+    assert worker_client.get(path, query_string=period).status_code == 403
+    login(admin, sample.admin_username)
+
+    def search(**filters):
+        response = admin.get(path, query_string={**period, **filters})
+        assert response.status_code == 200
+        return response.json
+
+    first_page = search()
+    assert first_page["zona_horaria"] == "America/Lima"
+    assert first_page["pagina"] == 1 and first_page["hay_siguiente"] is True
+    overnight, open_shift = first_page["jornadas"]
+    assert overnight["id"] == str(overnight_id)
+    assert overnight["sede_id"] == str(sample.site_id)
+    assert overnight["trabajador"] == sample.username
+    assert overnight["duracion_segundos"] == 8 * 60 * 60
+    assert open_shift["id"] == str(open_id) and open_shift["salida"] is None
+
+    second_page = search(pagina=2)
+    assert second_page["pagina"] == 2 and second_page["hay_siguiente"] is False
+    assert [shift["id"] for shift in second_page["jornadas"]] == [str(first_id)]
+    both = search(trabajador_id=sample.worker_id, sede_id=sample.site_id)
+    assert [shift["id"] for shift in both["jornadas"]] == [
+        str(overnight_id),
+        str(first_id),
+    ]
+    assert (
+        search(trabajador_id=sample.worker_id, sede_id=sample.next_site_id)["jornadas"]
+        == []
+    )
+    assert search(sede_id=sample.next_site_id)["jornadas"] == [open_shift]
+    on_tuesday = search(desde="2026-11-17", hasta="2026-11-17")
+    assert [shift["id"] for shift in on_tuesday["jornadas"]] == [str(tuesday_id)]
+
+    for invalid in (
+        {"desde": ""},
+        {"hasta": "2026-02-30"},
+        {"hasta": "2026-11-15"},
+        {"hasta": "9999-12-31"},
+        {"trabajador_id": "incorrecto"},
+        {"sede_id": "incorrecto"},
+        {"pagina": 0},
+    ):
+        response = admin.get(path, query_string={**period, **invalid})
+        assert response.status_code == 400, invalid
+
+
+def test_history_respects_local_midnight_and_elapsed_time_when_clocks_change():
+    timezone = ZoneInfo("America/New_York")
+    day = date(2026, 11, 1)
+    lower, upper = history.period_bounds(day, day, timezone)
+    assert lower == datetime(2026, 11, 1, 4, tzinfo=UTC)
+    assert upper == datetime(2026, 11, 2, 5, tzinfo=UTC)
+    shift = Shift(
+        id=uuid4(),
+        entrada=lower.astimezone(timezone),
+        salida=upper.astimezone(timezone),
+    )
+    assert shift_details(shift, "Sede de prueba")["duracion_segundos"] == 25 * 60 * 60
 
 
 @pytest.mark.parametrize("same_key", [False, True])
