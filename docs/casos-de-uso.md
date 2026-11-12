@@ -65,5 +65,5 @@ Si hay una jornada abierta, la API rechaza la desactivación y mantiene al traba
 **Actor** · Administrador. **Requisitos** · RF-07, RN-07 y RQ-01.
 
 1. El administrador abre el historial y elige un período. Puede filtrar por trabajador y sede.
-2. La API devuelve las jornadas cuya fecha de entrada cae en el período, en la zona horaria de la empresa, y que coinciden con los demás filtros.
-3. La vista muestra los filtros activos y distingue las jornadas abiertas de las cerradas. Si el filtro no devuelve registros, indica que no hubo coincidencias.
+2. La API devuelve las jornadas cuya fecha de entrada cae en el período, incluidas ambas fechas en la zona horaria de la empresa. Los filtros opcionales usan el trabajador y la sede registrada en la jornada.
+3. La vista muestra los filtros activos y distingue las jornadas abiertas de las cerradas. Ordena las entradas de más reciente a más antigua y permite avanzar por páginas. Si el filtro no devuelve registros, indica que no hubo coincidencias.

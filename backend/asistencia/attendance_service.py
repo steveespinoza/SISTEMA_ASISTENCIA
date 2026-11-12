@@ -43,15 +43,15 @@ def get_worker(db: Session, account_id: UUID, *, lock: bool = False) -> Worker:
 
 
 def shift_details(shift: Shift, site_name: str) -> dict:
+    entry = shift.entrada.astimezone(UTC)
+    exit_time = shift.salida.astimezone(UTC) if shift.salida is not None else None
     return {
         "id": str(shift.id),
         "sede": site_name,
-        "entrada": shift.entrada.astimezone(UTC).isoformat(),
-        "salida": shift.salida.astimezone(UTC).isoformat() if shift.salida else None,
+        "entrada": entry.isoformat(),
+        "salida": exit_time.isoformat() if exit_time is not None else None,
         "duracion_segundos": (
-            int((shift.salida - shift.entrada).total_seconds())
-            if shift.salida
-            else None
+            int((exit_time - entry).total_seconds()) if exit_time is not None else None
         ),
     }
 

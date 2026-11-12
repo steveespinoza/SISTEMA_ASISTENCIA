@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { AdminHistory } from "./AdminHistory";
 import {
   createWorker,
   deactivateWorker,
@@ -15,7 +16,7 @@ import { ApiProblem, isSessionProblem } from "./attendance-api";
 import "./admin.css";
 
 type Feedback = { kind: "error" | "success"; message: string; workerId?: string };
-type Panel = "trabajadores" | "sedes";
+type Panel = "trabajadores" | "sedes" | "historial";
 
 function upsert<T extends { id: string; nombre: string }>(items: T[], item: T): T[] {
   return [...items.filter(({ id }) => id !== item.id), item].sort(
@@ -283,21 +284,25 @@ export function AdminPage({ csrfToken, onSessionProblem }: {
               aria-pressed={panel === "trabajadores"} onClick={() => openPanel("trabajadores")}>Trabajadores</button>
             <button type="button" className="secondary-button" disabled={saving}
               aria-pressed={panel === "sedes"} onClick={() => openPanel("sedes")}>Sedes</button>
+            <button type="button" className="secondary-button" disabled={saving}
+              aria-pressed={panel === "historial"} onClick={() => openPanel("historial")}>Historial</button>
           </nav>
           <FeedbackMessage feedback={feedback?.workerId ? null : feedback} />
-          {panel === "sedes" ? (
+          {panel === "sedes" && (
             <SitePanel sites={directory.sedes} saving={saving} onSave={(name, id) => save(
               () => saveSite(csrfToken, name, id),
               (data, site) => ({ ...data, sedes: upsert(data.sedes, site) }),
               id ? "Sede actualizada." : "Sede registrada.",
             )} />
-          ) : (
+          )}
+          {panel === "trabajadores" && (
             <WorkerPanel directory={directory} saving={saving} feedback={feedback} onSave={saveWorker}
               onDeactivate={(worker) => saveWorker(
                 (token) => deactivateWorker(token, worker.id), "Trabajador desactivado.", worker.id,
               )}
               onOpenSites={() => openPanel("sedes")} />
           )}
+          {panel === "historial" && <AdminHistory directory={directory} onSessionProblem={onSessionProblem} />}
         </>
       )}
     </main>

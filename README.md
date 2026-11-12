@@ -2,7 +2,7 @@
 
 Este proyecto nace de un sistema de asistencia que desarrollé para una empresa con varias sedes. Quiero que cada trabajador pueda marcar su entrada y salida desde el celular y que el administrador pueda revisar quién marcó, a qué hora y en qué sede.
 
-En local, el trabajador puede iniciar sesión, marcar su entrada y salida y consultar su historial. El administrador puede registrar sedes, dar de alta trabajadores, reasignarlos y desactivarlos cuando hayan cerrado su jornada.
+En local, el trabajador puede iniciar sesión, marcar su entrada y salida y consultar su historial. El administrador puede gestionar sedes y trabajadores y consultar las jornadas del personal.
 
 ## Alcance del MVP
 
@@ -74,6 +74,8 @@ uv run --locked flask --app asistencia crear-administrador
 El comando solicita un usuario y una contraseña. Con esa cuenta, abre **Sedes** para registrar una sede y luego **Trabajadores** para crear una cuenta de trabajador con una contraseña inicial y una sede asignada.
 
 Puedes editar los datos del trabajador y cambiar su sede para futuras entradas. Para desactivarlo, primero debe registrar la salida de cualquier jornada abierta. Su historial seguirá disponible y las marcaciones nuevas se rechazarán.
+
+En **Historial**, elige las fechas de inicio y fin y, si hace falta, filtra por trabajador o sede. El período incluye ambas fechas según la hora de entrada en la zona horaria de la empresa. Si una jornada cruza medianoche, aparece en el día en que empezó. El filtro de sede usa la sede registrada en la jornada.
 
 ### Verificación
 

@@ -1,8 +1,10 @@
 from collections.abc import Iterator
 from contextlib import contextmanager
+from datetime import date
 from uuid import UUID
+from zoneinfo import ZoneInfo
 
-from flask import Blueprint, Response, jsonify, request
+from flask import Blueprint, Response, current_app, jsonify, request
 from psycopg.errors import UniqueViolation
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -17,6 +19,7 @@ from asistencia.accounts import (
     create_account,
 )
 from asistencia.attendance_service import find_open_shift
+from asistencia.history import PAGE_SIZE, history_page, period_bounds
 from asistencia.http import (
     ApiError,
     database_sessions,
@@ -115,6 +118,57 @@ def directory() -> Response:
                 worker_view(worker, username) for worker, username in workers
             ],
         )
+
+
+def history_date(field: str) -> date:
+    value = request.args.get(field, "")
+    try:
+        parsed = date.fromisoformat(value)
+        if parsed.isoformat() != value:
+            raise ValueError
+    except ValueError as error:
+        raise ApiError(400, "Indica las fechas de inicio y fin del período.") from error
+    return parsed
+
+
+def history_id(field: str, message: str) -> UUID | None:
+    value = request.args.get(field)
+    if value is None:
+        return None
+    try:
+        return UUID(value)
+    except ValueError as error:
+        raise ApiError(400, message) from error
+
+
+@admin_api.get("/jornadas")
+def attendance_history() -> Response:
+    with admin_session() as db:
+        timezone = current_app.config["COMPANY_TIMEZONE"]
+        start, end = history_date("desde"), history_date("hasta")
+        try:
+            lower, upper = period_bounds(start, end, ZoneInfo(timezone))
+        except ValueError as error:
+            raise ApiError(400, str(error)) from error
+        except OverflowError as error:
+            raise ApiError(400, "Selecciona un período de fechas válido.") from error
+
+        try:
+            page = int(request.args.get("pagina", "1"))
+            if page < 1 or (page - 1) * PAGE_SIZE > 2**63 - 1:
+                raise ValueError
+        except ValueError as error:
+            raise ApiError(400, "Selecciona un número de página válido.") from error
+
+        result = history_page(
+            db,
+            lower,
+            upper,
+            worker_id=history_id("trabajador_id", "Selecciona un trabajador válido."),
+            site_id=history_id("sede_id", "Selecciona una sede válida."),
+            page=page,
+        )
+        return jsonify(**result, zona_horaria=timezone)
 
 
 @admin_api.post("/sedes")
