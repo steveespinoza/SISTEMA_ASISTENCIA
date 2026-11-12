@@ -25,7 +25,7 @@ flowchart LR
 
 **Identidad** autentica con nombre de usuario y contraseña y valida la sesión y el rol. **Personal y sedes** mantiene los trabajadores y su asignación vigente. **Asistencia** abre y cierra jornadas. **Consultas** obtiene el historial según los permisos del actor. Las rutas de Flask traducen las solicitudes HTTP y llaman al módulo responsable.
 
-## Modelo de datos propuesto
+## Modelo de datos de marcación
 
 ```mermaid
 erDiagram
@@ -34,7 +34,7 @@ erDiagram
     SEDE ||--o{ JORNADA : sede_registrada
     TRABAJADOR ||--o{ JORNADA : realiza
     CUENTA ||--o{ SOLICITUD_MARCACION : envia
-    JORNADA ||--o{ SOLICITUD_MARCACION : confirma
+    JORNADA o|--o{ SOLICITUD_MARCACION : resultado
 
     CUENTA {
         uuid id PK
@@ -47,6 +47,7 @@ erDiagram
         uuid id PK
         uuid sede_id FK
         uuid cuenta_id FK "Opcional y única"
+        string nombre
         boolean activo
     }
 
@@ -64,16 +65,16 @@ erDiagram
     }
 
     SOLICITUD_MARCACION {
-        uuid id PK
-        uuid cuenta_id FK
-        uuid jornada_id FK
-        string clave_reintento
+        uuid cuenta_id PK, FK
+        uuid clave_reintento PK
+        uuid jornada_id FK "Opcional si se rechaza la marcación"
         string operacion
-        jsonb resultado "Confirmación original"
+        smallint estado_http
+        jsonb resultado "Respuesta original"
     }
 ```
 
-La sede de la jornada se registra al abrirla. El estado se puede derivar de la hora de salida. PostgreSQL puede imponer una sola jornada abierta por trabajador mediante un índice único parcial sobre las jornadas cuya salida esté vacía. El registro de una marcación exitosa y el resultado asociado a su clave de reintento deben confirmarse en la misma transacción.
+La sede de la jornada se registra al abrirla. El estado se puede derivar de la hora de salida. PostgreSQL puede imponer una sola jornada abierta por trabajador mediante un índice único parcial sobre las jornadas cuya salida esté vacía. Una marcación y su resultado se confirman en la misma transacción. El resultado asociado a la clave incluye las confirmaciones y los rechazos de negocio.
 
 ## Secuencia de marcación
 
@@ -88,17 +89,18 @@ sequenceDiagram
     UI->>API: Envía la operación con su clave de reintento
     API->>API: Valida la sesión y los permisos
     API->>BD: Busca un resultado para la cuenta y la clave
-    alt La misma operación ya se confirmó
+    alt La operación ya tiene resultado
         BD-->>API: Resultado original
-        API-->>UI: Devuelve la confirmación original
+        API-->>UI: Devuelve la respuesta original
     else Primera solicitud válida
         API->>BD: Registra la jornada y el resultado en una transacción
         BD-->>API: Confirma la operación
         API-->>UI: Devuelve la jornada y la hora registrada
     else La operación incumple una regla
+        API->>BD: Guarda el rechazo para esa clave
         API-->>UI: Devuelve el motivo del rechazo
     end
     UI-->>T: Muestra la confirmación o el error
 ```
 
-Si la respuesta se pierde, la interfaz conserva la clave para repetir la misma operación. El modelo es conceptual. La primera migración concretará los nombres, tipos y restricciones de las tablas.
+Si la respuesta se pierde, la interfaz conserva la clave para repetir la misma operación. La [primera migración](../backend/migrations/versions/20261112_0001_crear_tablas_de_asistencia.py) crea las tablas y el índice de jornadas abiertas.

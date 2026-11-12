@@ -34,6 +34,6 @@ El sistema registra la asistencia de una empresa con varias sedes. El [alcance d
 | RQ-02 | El flujo de marcación se puede completar desde el celular. La interfaz distingue carga, confirmación y resultado sin confirmar. | Completar entrada y salida en una pantalla estrecha. Simular una respuesta perdida y verificar que se pueda reintentar la misma solicitud. |
 | RQ-03 | El primer flujo se puede reproducir desde una base PostgreSQL vacía. | Aplicar las migraciones, cargar datos ficticios y completar inicio de sesión, entrada, salida y consulta del historial. |
 
-## Detalles de sesión por definir
+## Sesión y cuenta de demostración
 
-Para la demo se cargará una cuenta ficticia. Queda por definir cómo se crean las cuentas de una instalación real y cuánto dura una sesión.
+La sesión web tiene una vigencia de ocho horas. La demo usa una cuenta ficticia creada con un comando local. El alta de cuentas de una instalación real se definirá junto con la gestión administrativa. [Decisión sobre la sesión web](decisiones/0001-sesion-web.md)

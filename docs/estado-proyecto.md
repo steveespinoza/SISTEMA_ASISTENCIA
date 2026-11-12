@@ -16,10 +16,8 @@ El [alcance del MVP](alcance-mvp.md) recoge las reglas iniciales y las funciones
 | Producto y arquitectura | Alcance definido. La dirección acordada es un monolito modular con React y TypeScript, Flask y PostgreSQL con SQLAlchemy y Alembic. |
 | Diseño del MVP | [Requisitos](requisitos.md), [casos de uso](casos-de-uso.md) y [diagramas](arquitectura.md) preparados. Acceso con usuario y contraseña, filtro por fecha de entrada y bloqueo de la desactivación con una jornada abierta. |
 | GitHub | [Plantilla de PR](../.github/pull_request_template.md) y [CI](../.github/workflows/ci.yml) para backend y frontend. La plantilla de issues sigue propuesta. |
-| Aplicación | Frontend en React, API Flask con `GET /api/health`, PostgreSQL de desarrollo y Alembic configurado. El [arranque local](../README.md#desarrollo-local) incluye una pantalla que comprueba la conexión. |
+| Aplicación | El [flujo local](../README.md#desarrollo-local) permite iniciar sesión, marcar entrada y salida y consultar el historial propio. Alembic crea el esquema y el comando de demo carga una cuenta ficticia. |
 
 ## Siguiente paso
 
-El siguiente hito es el primer flujo de asistencia con datos ficticios. Crear la primera migración de negocio y conectar inicio de sesión, entrada, salida y consulta de la jornada. El hito se completa cuando ese recorrido se puede ejecutar desde una instalación nueva y comprobar con pruebas.
-
-Después, completar la gestión administrativa y los filtros del historial, y preparar la demo pública. El entorno de despliegue se definirá cuando el flujo funcione en local.
+El siguiente hito es la gestión administrativa de trabajadores y sedes. Incluye la consulta del historial por fecha de entrada y el bloqueo de la desactivación si el trabajador tiene una jornada abierta. El despliegue de la demo pública se definirá en un cambio posterior.
