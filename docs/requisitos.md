@@ -36,4 +36,4 @@ El sistema registra la asistencia de una empresa con varias sedes. El [alcance d
 
 ## Sesión y cuenta de demostración
 
-La sesión web tiene una vigencia de ocho horas. La demo usa una cuenta ficticia creada con un comando local. El alta de cuentas de una instalación real se definirá junto con la gestión administrativa. [Decisión sobre la sesión web](decisiones/0001-sesion-web.md)
+La sesión web tiene una vigencia de ocho horas. La demo usa una cuenta ficticia creada con un comando local. En una instalación nueva, el operador crea la primera cuenta administrativa con `crear-administrador`. El administrador registra a los trabajadores con usuario, contraseña inicial y sede. [Decisión sobre la sesión web](decisiones/0001-sesion-web.md)

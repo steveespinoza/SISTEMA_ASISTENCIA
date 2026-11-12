@@ -2,11 +2,12 @@ import os
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from threading import Barrier
+from threading import Barrier, Event
+from time import monotonic, sleep
 from uuid import UUID, uuid4
 
 import pytest
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, select, text
 from sqlalchemy.exc import IntegrityError
 from werkzeug.security import generate_password_hash
 
@@ -270,6 +271,228 @@ def test_history_is_private_and_admin_cannot_mark(app, sample):
     with app.extensions["database_sessions"].begin() as db:
         db.get_one(Worker, sample.worker_id).activo = False
     assert mark(client, token, "entrada").status_code == 403
+
+
+def test_bootstrap_creates_only_the_first_admin(app):
+    username, second_username = (f"admin-{uuid4().hex}" for _ in range(2))
+    runner = app.test_cli_runner()
+    passwords = f"{TEST_PASSWORD}\n{TEST_PASSWORD}\n"
+    sessions = app.extensions["database_sessions"]
+    try:
+        created = runner.invoke(
+            args=["crear-administrador", "--usuario", username], input=passwords
+        )
+        assert created.exit_code == 0, created.output
+        second = runner.invoke(
+            args=["crear-administrador", "--usuario", second_username], input=passwords
+        )
+        assert second.exit_code == 1
+        assert "Ya existe una cuenta administrativa." in second.output
+
+        client = app.test_client()
+        login(client, username)
+        assert client.get("/api/admin").status_code == 200
+        with sessions() as db:
+            assert (
+                db.scalar(
+                    select(Account.id).where(Account.nombre_usuario == second_username)
+                )
+                is None
+            )
+    finally:
+        with sessions.begin() as db:
+            db.execute(
+                delete(Account).where(
+                    Account.nombre_usuario.in_([username, second_username])
+                )
+            )
+
+
+def test_admin_manages_sites_and_worker_through_deactivation(app, sample):
+    admin = app.test_client()
+    assert admin.get("/api/admin").status_code == 401
+    admin_token = login(admin, sample.admin_username)
+    headers = {"X-CSRF-Token": admin_token}
+    worker_client = app.test_client()
+    worker_token = login(worker_client, sample.username)
+    assert worker_client.get("/api/admin").status_code == 403
+    assert (
+        worker_client.post(
+            "/api/admin/sedes",
+            json={"nombre": "Sin permiso"},
+            headers={"X-CSRF-Token": worker_token},
+        ).status_code
+        == 403
+    )
+    assert (
+        admin.post("/api/admin/sedes", json={"nombre": "Sin CSRF"}).status_code == 403
+    )
+
+    suffix = uuid4().hex[:12]
+    site_name, renamed = f"Sede {suffix}", f"Sede principal {suffix}"
+    username = f"nuevo-{suffix}"
+    worker_data = {
+        "nombre": "Trabajadora de prueba",
+        "usuario": username,
+        "contrasena": TEST_PASSWORD,
+    }
+    sessions = app.extensions["database_sessions"]
+    try:
+        assert (
+            admin.post(
+                "/api/admin/sedes", headers=headers, json={"nombre": " "}
+            ).status_code
+            == 400
+        )
+        created_site = admin.post(
+            "/api/admin/sedes", headers=headers, json={"nombre": site_name}
+        )
+        assert created_site.status_code == 201
+        site_id = created_site.json["id"]
+        assert (
+            admin.post(
+                "/api/admin/sedes", headers=headers, json={"nombre": site_name}
+            ).status_code
+            == 409
+        )
+        updated_site = admin.patch(
+            f"/api/admin/sedes/{site_id}", headers=headers, json={"nombre": renamed}
+        )
+        assert updated_site.status_code == 200
+        assert updated_site.json == {"id": site_id, "nombre": renamed}
+
+        assert (
+            admin.post(
+                "/api/admin/trabajadores",
+                headers=headers,
+                json={**worker_data, "sede_id": str(uuid4())},
+            ).status_code
+            == 404
+        )
+        created_worker = admin.post(
+            "/api/admin/trabajadores",
+            headers=headers,
+            json={**worker_data, "sede_id": site_id},
+        )
+        assert created_worker.status_code == 201
+        worker = created_worker.json
+        assert worker == {
+            "id": worker["id"],
+            "nombre": worker_data["nombre"],
+            "usuario": username,
+            "sede_id": site_id,
+            "activo": True,
+        }
+        worker_path = f"/api/admin/trabajadores/{worker['id']}"
+        assert (
+            admin.post(
+                "/api/admin/trabajadores",
+                headers=headers,
+                json={**worker_data, "sede_id": site_id},
+            ).status_code
+            == 409
+        )
+
+        new_worker = app.test_client()
+        token = login(new_worker, username)
+        entry = mark(new_worker, token, "entrada")
+        assert entry.status_code == 200
+        assert entry.json["jornada"]["sede"] == renamed
+        deactivate_path = worker_path + "/desactivar"
+        denied = admin.post(deactivate_path, headers=headers)
+        assert denied.status_code == 409
+        assert denied.json["codigo"] == "open_shift"
+
+        reassigned = admin.patch(
+            worker_path,
+            headers=headers,
+            json={"nombre": "Nombre actualizado", "sede_id": str(sample.next_site_id)},
+        )
+        assert reassigned.status_code == 200
+        assert reassigned.json["activo"] is True
+        assert reassigned.json["nombre"] == "Nombre actualizado"
+        assert reassigned.json["sede_id"] == str(sample.next_site_id)
+        first_exit = mark(
+            new_worker, token, "salida", jornada_id=entry.json["jornada"]["id"]
+        )
+        assert first_exit.status_code == 200
+        assert first_exit.json["jornada"]["sede"] == renamed
+
+        next_entry = mark(new_worker, token, "entrada")
+        assert next_entry.status_code == 200
+        assert next_entry.json["jornada"]["sede"] != renamed
+        assert (
+            mark(
+                new_worker, token, "salida", jornada_id=next_entry.json["jornada"]["id"]
+            ).status_code
+            == 200
+        )
+        deactivated = admin.post(deactivate_path, headers=headers)
+        assert deactivated.status_code == 200
+        assert deactivated.json["activo"] is False
+        assert admin.post(deactivate_path, headers=headers).json == deactivated.json
+        assert mark(new_worker, token, "entrada").status_code == 403
+        history = new_worker.get("/api/asistencia").json
+        assert history["activo"] is False
+        assert history["jornada_abierta"] is None
+        assert len(history["jornadas"]) == 2
+        assert first_exit.json["jornada"] in history["jornadas"]
+        directory = admin.get("/api/admin").json
+        assert updated_site.json in directory["sedes"]
+        assert deactivated.json in directory["trabajadores"]
+    finally:
+        with sessions.begin() as db:
+            accounts = select(Account.id).where(Account.nombre_usuario == username)
+            workers = select(Worker.id).where(Worker.cuenta_id.in_(accounts))
+            db.execute(delete(MarkRequest).where(MarkRequest.cuenta_id.in_(accounts)))
+            db.execute(delete(Shift).where(Shift.trabajador_id.in_(workers)))
+            db.execute(delete(Worker).where(Worker.cuenta_id.in_(accounts)))
+            db.execute(delete(Account).where(Account.nombre_usuario == username))
+            db.execute(delete(Site).where(Site.nombre.in_([site_name, renamed])))
+
+
+def test_deactivation_waits_for_concurrent_entry(app, sample, monkeypatch):
+    entering, release = Event(), Event()
+
+    def clock():
+        entering.set()
+        assert release.wait(10)
+        return datetime.now(UTC)
+
+    monkeypatch.setattr(attendance, "utc_now", clock)
+    worker = app.test_client()
+    token = login(worker, sample.username)
+    admin = app.test_client()
+    headers = {"X-CSRF-Token": login(admin, sample.admin_username)}
+    path = f"/api/admin/trabajadores/{sample.worker_id}/desactivar"
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        entry = pool.submit(mark, worker, token, "entrada")
+        try:
+            assert entering.wait(10)
+            deactivation = pool.submit(admin.post, path, headers=headers)
+            deadline = monotonic() + 5
+            sessions = app.extensions["database_sessions"]
+            while not deactivation.done() and monotonic() < deadline:
+                with sessions() as db:
+                    waiting_for_worker = db.scalar(
+                        text(
+                            "SELECT EXISTS (SELECT 1 FROM pg_stat_activity "
+                            "WHERE datname = current_database() "
+                            "AND wait_event_type = 'Lock' "
+                            "AND query LIKE '%FROM trabajadores%FOR UPDATE%')"
+                        )
+                    )
+                if waiting_for_worker:
+                    break
+                sleep(0.02)
+            else:
+                pytest.fail("La desactivación debe esperar el bloqueo de la marcación.")
+        finally:
+            release.set()
+
+    assert entry.result().status_code == 200
+    assert deactivation.result().status_code == 409
+    assert worker.get("/api/asistencia").json["activo"] is True
 
 
 @pytest.mark.parametrize("same_key", [False, True])

@@ -80,6 +80,12 @@ def conflict(message: str) -> MarkOutcome:
     return MarkOutcome({"error": message, "codigo": "attendance_conflict"}, 409)
 
 
+def find_open_shift(db: Session, worker_id: UUID) -> Shift | None:
+    return db.scalar(
+        select(Shift).where(Shift.trabajador_id == worker_id, Shift.salida.is_(None))
+    )
+
+
 def apply_mark(
     db: Session,
     worker: Worker,
@@ -103,9 +109,7 @@ def apply_mark(
             400,
         )
 
-    shift = db.scalar(
-        select(Shift).where(Shift.trabajador_id == worker.id, Shift.salida.is_(None))
-    )
+    shift = find_open_shift(db, worker.id)
     instant = clock()
     if operation == "entrada":
         if shift is not None:
