@@ -2,6 +2,7 @@ from flask import Blueprint, Response, jsonify, request, session
 from sqlalchemy import select
 from werkzeug.security import check_password_hash, generate_password_hash
 
+from asistencia.accounts import PASSWORD_LIMIT, USERNAME_LIMIT
 from asistencia.http import (
     ApiError,
     csrf_token,
@@ -44,7 +45,10 @@ def login() -> Response:
     if not isinstance(username, str) or not isinstance(password, str):
         raise ApiError(400, "Ingresa tu usuario y contraseña.")
     username = username.strip()
-    if not 1 <= len(username) <= 80 or not 1 <= len(password) <= 256:
+    if (
+        not 1 <= len(username) <= USERNAME_LIMIT
+        or not 1 <= len(password) <= PASSWORD_LIMIT
+    ):
         raise ApiError(400, "Revisa el usuario y la contraseña ingresados.")
 
     with database_sessions()() as db:

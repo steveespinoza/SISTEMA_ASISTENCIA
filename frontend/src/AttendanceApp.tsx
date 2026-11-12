@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { AdminPage } from "./AdminPage";
 import { getSession, isSessionProblem, signOut, type SessionInfo } from "./attendance-api";
 import { LoginForm } from "./LoginForm";
 import { WorkerPage } from "./WorkerPage";
@@ -75,10 +76,7 @@ export function AttendanceApp() {
         <WorkerPage key={session.usuario.usuario} username={session.usuario.usuario}
           csrfToken={session.csrf_token} onSessionProblem={reloadSession} />
       ) : (
-        <main className="attendance-content">
-          <h1>Administración</h1>
-          <p className="summary">La gestión administrativa está en preparación.</p>
-        </main>
+        <AdminPage csrfToken={session.csrf_token} onSessionProblem={reloadSession} />
       )}
     </>
   );

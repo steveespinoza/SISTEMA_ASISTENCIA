@@ -6,6 +6,8 @@ from flask import Flask, Response, jsonify
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import sessionmaker
 
+from asistencia.accounts import create_first_admin
+from asistencia.admin import admin_api
 from asistencia.attendance import attendance_api
 from asistencia.auth import auth_api
 from asistencia.config import get_database_url, load_local_env
@@ -49,6 +51,8 @@ def create_app(
     app.register_blueprint(health_api)
     app.register_blueprint(auth_api)
     app.register_blueprint(attendance_api)
+    app.register_blueprint(admin_api)
+    app.cli.add_command(create_first_admin)
     app.cli.add_command(load_demo)
 
     @app.errorhandler(ApiError)

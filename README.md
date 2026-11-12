@@ -2,7 +2,7 @@
 
 Este proyecto nace de un sistema de asistencia que desarrollé para una empresa con varias sedes. Quiero que cada trabajador pueda marcar su entrada y salida desde el celular y que el administrador pueda revisar quién marcó, a qué hora y en qué sede.
 
-El primer flujo ya funciona en local. Un trabajador puede iniciar sesión, marcar su entrada y salida y consultar su historial.
+En local, el trabajador puede iniciar sesión, marcar su entrada y salida y consultar su historial. El administrador puede registrar sedes, dar de alta trabajadores, reasignarlos y desactivarlos cuando hayan cerrado su jornada.
 
 ## Alcance del MVP
 
@@ -62,6 +62,18 @@ Abre [http://127.0.0.1:5173](http://127.0.0.1:5173) e ingresa con `demo.trabajad
 La pantalla de [estado del sistema](http://127.0.0.1:5173/estado) comprueba la API y PostgreSQL. Vite reenvía `/api` a Flask en `http://127.0.0.1:5000`.
 
 Para usar una instancia local de PostgreSQL existente, crea una base de desarrollo vacía y ajusta `DATABASE_URL` en `.env` con una URL `postgresql+psycopg://…`.
+
+### Gestión administrativa
+
+Con las migraciones aplicadas, ejecuta este comando desde `backend/` para crear la primera cuenta administrativa:
+
+```sh
+uv run --locked flask --app asistencia crear-administrador
+```
+
+El comando solicita un usuario y una contraseña. Con esa cuenta, abre **Sedes** para registrar una sede y luego **Trabajadores** para crear una cuenta de trabajador con una contraseña inicial y una sede asignada.
+
+Puedes editar los datos del trabajador y cambiar su sede para futuras entradas. Para desactivarlo, primero debe registrar la salida de cualquier jornada abierta. Su historial seguirá disponible y las marcaciones nuevas se rechazarán.
 
 ### Verificación
 

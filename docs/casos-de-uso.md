@@ -54,9 +54,9 @@ El sistema muestra un estado vacío si todavía no hay jornadas. Una solicitud d
 
 **Actor** · Administrador. **Requisitos** · RF-06, RN-06 y RQ-01.
 
-1. El administrador registra o actualiza los datos de un trabajador.
+1. El administrador registra al trabajador con nombre, usuario, contraseña inicial y sede. Después puede editar su nombre y la sede asignada.
 2. Cuando el administrador solicita la desactivación, la API comprueba si el trabajador tiene una jornada abierta.
-3. El sistema desactiva al trabajador, bloquea nuevas marcaciones y mantiene su historial disponible para el administrador.
+3. El sistema desactiva al trabajador, bloquea nuevas marcaciones y conserva sus jornadas para el historial.
 
 Si hay una jornada abierta, la API rechaza la desactivación y mantiene al trabajador activo. El trabajador debe marcar su salida antes de que el administrador vuelva a solicitarla.
 
