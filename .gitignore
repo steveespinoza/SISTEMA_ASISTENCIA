@@ -1,0 +1,16 @@
+# Configuración local
+.env
+.env.*
+!.env.example
+
+# Python
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.py[cod]
+
+# Node y compilación
+node_modules/
+dist/
+coverage/
