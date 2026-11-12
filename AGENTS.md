@@ -20,4 +20,4 @@ Actualiza ese archivo en el mismo cambio cuando se complete un hito, cambie una 
 
 Una tarea puede usar varias skills. Lee las que correspondan al trabajo solicitado. Mantén los cambios ajenos al objetivo fuera del diff y respeta las ediciones que ya estén en el árbol de trabajo.
 
-Usa datos ficticios en ejemplos, pruebas y capturas. Excluye credenciales, datos personales y material de clientes de los archivos y textos que puedan llegar al repositorio público. Trabaja en local salvo que se solicite una acción remota.
+En la documentación pública, describe el problema, las decisiones de diseño y el estado real con lenguaje directo. Usa datos ficticios en ejemplos, pruebas y capturas. Excluye credenciales, datos personales y material de clientes de los archivos y textos que puedan llegar al repositorio público. Trabaja en local salvo que se solicite una acción remota.
