@@ -1,0 +1,109 @@
+:root {
+  font-family: "Inter Variable", system-ui, sans-serif;
+  color: #172e31;
+  background: #edf3f2;
+  font-synthesis: none;
+  --accent: #176057;
+  --accent-hover: #104941;
+  --text-muted: #455f60;
+  --border: #d3e0de;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+}
+
+#root {
+  width: min(100%, 35rem);
+}
+
+.system-panel {
+  padding: clamp(1.25rem, 5vw, 2.75rem);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 1.25rem;
+  box-shadow: 0 0.75rem 2.5rem #172e3110;
+}
+
+.product-name {
+  margin: 0 0 0.65rem;
+  color: var(--accent);
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(1.75rem, 6vw, 2.5rem);
+  line-height: 1.15;
+  letter-spacing: -0.04em;
+}
+
+.summary {
+  margin: 0.9rem 0 1.5rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.services {
+  margin: 0 0 1.5rem;
+  padding: 0 1rem;
+  background: #f4f8f7;
+  border-radius: 0.7rem;
+}
+
+.services > div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.35rem 0.75rem;
+  padding: 0.9rem 0;
+}
+
+.services > div + div {
+  border-top: 1px solid var(--border);
+}
+
+dt {
+  color: var(--text-muted);
+}
+
+dd {
+  margin: 0;
+  font-weight: 650;
+}
+
+button {
+  min-height: 2.75rem;
+  padding: 0.65rem 1rem;
+  border: 0;
+  border-radius: 0.55rem;
+  background: var(--accent);
+  color: #fff;
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+button:not(:disabled):hover {
+  background: var(--accent-hover);
+}
+
+button:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+
+button:disabled {
+  background: #dce8e6;
+  color: #455f60;
+  cursor: wait;
+}
