@@ -150,7 +150,10 @@ def test_shift_closes_after_midnight_and_replays_original_confirmation(
     client = app.test_client()
     token = login(client, sample.username)
     early_exit_key = uuid4()
-    rejected = mark(client, token, "salida", early_exit_key)
+    unknown_shift_id = str(uuid4())
+    rejected = mark(
+        client, token, "salida", early_exit_key, jornada_id=unknown_shift_id
+    )
     assert rejected.status_code == 409
 
     # En Lima son las 22:00 y las 06:00 del día siguiente.
@@ -163,7 +166,7 @@ def test_shift_closes_after_midnight_and_replays_original_confirmation(
     original = entry.get_json()
     assert original["jornada"]["entrada"] == start.isoformat()
     assert original["jornada"]["salida"] is None
-    retry = mark(client, token, "salida", early_exit_key)
+    retry = mark(client, token, "salida", early_exit_key, jornada_id=unknown_shift_id)
     assert retry.status_code == 409
     assert retry.get_json() == rejected.get_json()
 
@@ -171,22 +174,82 @@ def test_shift_closes_after_midnight_and_replays_original_confirmation(
         db.get_one(Worker, sample.worker_id).sede_id = sample.next_site_id
 
     monkeypatch.setattr(attendance, "utc_now", lambda: end)
-    exit_response = mark(client, token, "salida", exit_key)
+    shift_id = original["jornada"]["id"]
+    exit_response = mark(client, token, "salida", exit_key, jornada_id=shift_id)
     assert exit_response.status_code == 200
     closed = exit_response.get_json()
     assert closed["jornada"]["id"] == original["jornada"]["id"]
     assert closed["jornada"]["sede"] == original["jornada"]["sede"]
     assert closed["jornada"]["salida"] == end.isoformat()
     assert closed["jornada"]["duracion_segundos"] == 8 * 60 * 60
-    assert mark(client, token, "salida", exit_key).get_json() == closed
+    assert (
+        mark(client, token, "salida", exit_key, jornada_id=shift_id).get_json()
+        == closed
+    )
     assert mark(client, token, "entrada", entry_key).get_json() == original
-    assert mark(client, token, "salida", entry_key).status_code == 409
+    assert (
+        mark(client, token, "salida", entry_key, jornada_id=shift_id).status_code == 409
+    )
 
     history = client.get("/api/asistencia").get_json()
     assert history["zona_horaria"] == "America/Lima"
     assert history["jornada_abierta"] is None
     assert history["jornadas"] == [closed["jornada"]]
     assert history["sede"] != closed["jornada"]["sede"]
+
+
+def test_stale_exit_cannot_close_a_new_shift(app, sample, monkeypatch):
+    first_client, stale_client = app.test_client(), app.test_client()
+    first_token = login(first_client, sample.username)
+    stale_token = login(stale_client, sample.username)
+    monkeypatch.setattr(
+        attendance, "utc_now", lambda: datetime(2026, 11, 13, 11, tzinfo=UTC)
+    )
+
+    first_entry = mark(first_client, first_token, "entrada")
+    assert first_entry.status_code == 200
+    first_id = stale_client.get("/api/asistencia").json["jornada_abierta"]["id"]
+    assert first_id == first_entry.json["jornada"]["id"]
+
+    first_exit_key = uuid4()
+    first_exit = mark(
+        first_client, first_token, "salida", first_exit_key, jornada_id=first_id
+    )
+    assert first_exit.status_code == 200
+    next_entry = mark(first_client, first_token, "entrada")
+    assert next_entry.status_code == 200
+    next_shift = next_entry.json["jornada"]
+    assert next_shift["id"] != first_id
+
+    stale_key = uuid4()
+    stale_exit = mark(
+        stale_client, stale_token, "salida", stale_key, jornada_id=first_id
+    )
+    assert stale_exit.status_code == 409
+    assert stale_exit.json["codigo"] == "attendance_conflict"
+    assert mark(
+        stale_client, stale_token, "salida", stale_key, jornada_id=first_id
+    ).json == (stale_exit.json)
+
+    # Una salida antigua sin jornada solo puede recuperar un resultado registrado.
+    assert (
+        mark(first_client, first_token, "salida", first_exit_key).json
+        == first_exit.json
+    )
+    assert mark(stale_client, stale_token, "salida").status_code == 400
+    assert (
+        mark(stale_client, stale_token, "salida", jornada_id="invalida").status_code
+        == 400
+    )
+    wrong_retry = mark(
+        first_client, first_token, "salida", first_exit_key, jornada_id=next_shift["id"]
+    )
+    assert wrong_retry.status_code == 409
+    assert stale_client.get("/api/asistencia").json["jornada_abierta"] == next_shift
+
+    fresh_exit = mark(stale_client, stale_token, "salida", jornada_id=next_shift["id"])
+    assert fresh_exit.status_code == 200
+    assert fresh_exit.json["jornada"]["id"] == next_shift["id"]
 
 
 def test_history_is_private_and_admin_cannot_mark(app, sample):

@@ -13,6 +13,7 @@ export type Operation = "entrada" | "salida";
 export type MarkAttempt = {
   operacion: Operation;
   clave_reintento: string;
+  jornada_id?: string;
 };
 
 export type Shift = {

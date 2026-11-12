@@ -47,8 +47,27 @@ def mark() -> tuple[Response, int]:
     except ValueError as error:
         raise ApiError(400, "La clave de la marcación es inválida.") from error
 
+    expected_shift_id = None
+    if operation == "salida" and "jornada_id" in data:
+        shift_id = data["jornada_id"]
+        if not isinstance(shift_id, str):
+            raise ApiError(400, "El identificador de la jornada es inválido.")
+        try:
+            expected_shift_id = UUID(shift_id)
+        except ValueError as error:
+            raise ApiError(
+                400, "El identificador de la jornada es inválido."
+            ) from error
+
     with database_sessions().begin() as db:
-        result = register_mark(db, account_id, operation, request_key, utc_now)
+        result = register_mark(
+            db,
+            account_id,
+            operation,
+            request_key,
+            utc_now,
+            expected_shift_id=expected_shift_id,
+        )
     return jsonify(**result.body), result.status
 
 
