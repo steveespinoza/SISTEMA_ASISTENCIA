@@ -1,8 +1,8 @@
 # Sistema de Asistencia
 
-Este proyecto nace de un sistema de asistencia que desarrollé para una empresa con varias sedes. La primera versión permitirá marcar entradas y salidas desde el celular y consultar el historial por trabajador, fecha y sede.
+Este proyecto nace de un sistema de asistencia que desarrollé para una empresa con varias sedes. Quiero que cada trabajador pueda marcar su entrada y salida desde el celular y que el administrador pueda revisar quién marcó, a qué hora y en qué sede.
 
-**Estado actual:** diseño del MVP y preparación del repositorio. El primer hito funcional será demostrar el recorrido completo con una empresa ficticia.
+El proyecto está en etapa de diseño del MVP.
 
 ## Qué cubrirá el MVP
 
@@ -11,11 +11,13 @@ Este proyecto nace de un sistema de asistencia que desarrollé para una empresa 
 | Trabajador | Registrar su propia entrada y salida, ver la confirmación de la marcación y consultar su historial. |
 | Administrador | Gestionar trabajadores y sedes, y consultar jornadas abiertas y cerradas con filtros. |
 
-El diseño contempla una sola jornada abierta por trabajador, reintentos sin duplicar marcaciones y conservación de la sede histórica. Funciones como kiosco, geocercas, evidencia fotográfica y reglas de planilla se podrán incorporar según las necesidades de cada empresa.
+Cada trabajador podrá tener una sola jornada abierta. Si falla la conexión y vuelve a enviar la marcación, se conservará un único registro. El historial mantendrá la sede donde se registró cada jornada.
+
+La primera versión cubrirá la marcación y el historial. Funciones como geocercas, fotos o reglas de planilla se incorporarán según cómo trabaje cada empresa.
 
 ## Arquitectura propuesta
 
-La interfaz usará **React y TypeScript**. La API usará **Flask** y organizará sus casos de uso en un monolito modular con cuatro áreas: identidad y permisos, personal y sedes, asistencia y consultas. La persistencia usará **PostgreSQL**, **SQLAlchemy** y migraciones con **Alembic**.
+Elegí **React con TypeScript** para la interfaz y **Flask** para la API. La API será un monolito modular para desplegar un solo servicio y mantener claras las responsabilidades de identidad, personal, asistencia y consultas. Usaré **PostgreSQL** con **SQLAlchemy** y **Alembic** para el acceso a datos y las migraciones.
 
 El primer flujo conectará inicio de sesión, entrada, salida y consulta del historial. Su verificación incluirá una instalación desde una base vacía y pruebas de las reglas de marcación en PostgreSQL.
 

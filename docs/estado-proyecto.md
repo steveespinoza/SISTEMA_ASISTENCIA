@@ -2,11 +2,11 @@
 
 Última actualización: 2026-11-12.
 
-## Qué queremos construir
+## Objetivo
 
-La primera versión permitirá gestionar trabajadores y sedes, registrar entradas y salidas desde el celular y consultar el historial. La demo usará datos ficticios.
+La primera versión permitirá gestionar trabajadores y sedes, registrar entradas y salidas desde el celular y consultar el historial por trabajador, fecha y sede.
 
-El [alcance del MVP](alcance-mvp.md) define las reglas y las extensiones que una empresa puede solicitar. El diseño toma como referencia flujos de asistencia utilizados en empresas. El repositorio y la demo tienen identidad propia.
+El [alcance del MVP](alcance-mvp.md) recoge las reglas iniciales y las funciones que se pueden incorporar según la operación de cada empresa.
 
 ## Qué tenemos hoy
 
@@ -21,4 +21,4 @@ El [alcance del MVP](alcance-mvp.md) define las reglas y las extensiones que una
 
 El primer hito de implementación es un flujo de punta a punta con datos ficticios. Iniciar PostgreSQL desde cero con Alembic y conectar inicio de sesión, entrada, salida y consulta de la jornada. El hito se completa cuando ese recorrido se puede ejecutar desde una instalación nueva y comprobar con pruebas.
 
-Después, completar la gestión administrativa y los filtros del historial, preparar la demo pública y configurar CI. El despliegue del nuevo proyecto se definirá por separado del sistema de referencia.
+Después, completar la gestión administrativa y los filtros del historial, preparar la demo pública y configurar CI. El entorno de despliegue se definirá cuando el flujo funcione en local.
