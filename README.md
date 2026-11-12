@@ -2,9 +2,9 @@
 
 Este proyecto nace de un sistema de asistencia que desarrollé para una empresa con varias sedes. Quiero que cada trabajador pueda marcar su entrada y salida desde el celular y que el administrador pueda revisar quién marcó, a qué hora y en qué sede.
 
-La base técnica ya permite iniciar el frontend, la API y PostgreSQL en local. El flujo de marcación es el siguiente hito.
+El primer flujo ya funciona en local. Un trabajador puede iniciar sesión, marcar su entrada y salida y consultar su historial.
 
-## Qué cubrirá el MVP
+## Alcance del MVP
 
 | Rol | Funciones |
 | --- | --- |
@@ -19,7 +19,7 @@ La primera versión cubrirá la marcación y el historial. Funciones como geocer
 
 Elegí **React con TypeScript** para la interfaz y **Flask** para la API. La API será un monolito modular para desplegar un solo servicio y mantener claras las responsabilidades de identidad, personal, asistencia y consultas. Usaré **PostgreSQL** con **SQLAlchemy** y **Alembic** para el acceso a datos y las migraciones.
 
-El primer flujo conectará inicio de sesión, entrada, salida y consulta del historial. Su verificación incluirá una instalación desde una base vacía y pruebas de las reglas de marcación en PostgreSQL.
+Las reglas de marcación se comprueban con pruebas sobre PostgreSQL, incluidas entradas simultáneas, reintentos y jornadas que cruzan medianoche.
 
 ## Desarrollo local
 
@@ -31,14 +31,23 @@ Desde la raíz del repositorio, copia `.env.example` a `.env`. En PowerShell pue
 docker compose up -d --wait db
 ```
 
-En una terminal, instala e inicia la API:
+En una terminal, instala las dependencias y genera una clave de sesión:
 
 ```sh
 cd backend
 uv sync --locked
+uv run --locked python -c "import secrets; print(secrets.token_hex(32))"
+```
+
+Copia el resultado a `FLASK_SECRET_KEY` en tu `.env`. Aplica la migración, carga los datos ficticios e inicia la API:
+
+```sh
 uv run --locked alembic upgrade head
+uv run --locked flask --app asistencia cargar-demo
 uv run --locked flask --app asistencia run
 ```
+
+`cargar-demo` crea el usuario `demo.trabajador` y te pide elegir su contraseña. Si vuelves a ejecutar el comando, conserva la cuenta y su contraseña.
 
 En otra terminal, desde la raíz del repositorio:
 
@@ -48,7 +57,9 @@ npm ci
 npm run dev
 ```
 
-Abre [http://127.0.0.1:5173](http://127.0.0.1:5173). La pantalla de estado comprueba la API y PostgreSQL. Vite reenvía `/api` a Flask en `http://127.0.0.1:5000`.
+Abre [http://127.0.0.1:5173](http://127.0.0.1:5173) e ingresa con `demo.trabajador`. Marca la entrada y la salida. En **Historial** verás la jornada cerrada con la sede, las horas y la duración.
+
+La pantalla de [estado del sistema](http://127.0.0.1:5173/estado) comprueba la API y PostgreSQL. Vite reenvía `/api` a Flask en `http://127.0.0.1:5000`.
 
 Para usar una instancia local de PostgreSQL existente, crea una base de desarrollo vacía y ajusta `DATABASE_URL` en `.env` con una URL `postgresql+psycopg://…`.
 
@@ -63,7 +74,7 @@ uv run --locked alembic check
 uv run --locked pytest
 ```
 
-Para ejecutar también la prueba de integración de la API, define `TEST_DATABASE_URL` en tu terminal con la URL de la base de desarrollo o de una base descartable. CI configura un PostgreSQL propio para ejecutar esa prueba.
+Para ejecutar las pruebas de integración, aplica las migraciones a una base PostgreSQL descartable y define `TEST_DATABASE_URL` con su URL. CI prepara su propia base para esta suite.
 
 Desde `frontend/`:
 

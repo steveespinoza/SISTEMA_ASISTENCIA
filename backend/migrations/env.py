@@ -1,7 +1,8 @@
 from alembic import context
 
 from asistencia.config import get_database_url
-from asistencia.database import Base, create_database_engine
+from asistencia.database import create_database_engine
+from asistencia.models import Base
 
 
 def run_migrations_offline() -> None:

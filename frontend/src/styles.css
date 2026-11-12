@@ -16,16 +16,17 @@
 body {
   margin: 0;
   min-height: 100vh;
+}
+
+#root:has(.system-panel) {
   display: grid;
+  min-height: 100vh;
   place-items: center;
   padding: 1.25rem;
 }
 
-#root {
-  width: min(100%, 35rem);
-}
-
 .system-panel {
+  width: min(100%, 35rem);
   padding: clamp(1.25rem, 5vw, 2.75rem);
   background: #fff;
   border: 1px solid var(--border);

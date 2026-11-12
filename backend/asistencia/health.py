@@ -19,5 +19,4 @@ def health() -> Response:
     else:
         response = jsonify(database="available")
 
-    response.headers["Cache-Control"] = "no-store"
     return response

@@ -1,0 +1,209 @@
+.login-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+}
+
+.login-card {
+  width: min(100%, 26rem);
+  padding: clamp(1.5rem, 6vw, 2.5rem);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 1.25rem;
+  box-shadow: 0 0.75rem 2.5rem #172e3110;
+}
+
+.login-form {
+  display: grid;
+  gap: 0.6rem;
+  margin-top: 1.8rem;
+}
+
+.login-form label {
+  font-weight: 650;
+}
+
+.login-form input {
+  min-width: 0;
+  min-height: 2.75rem;
+  margin-bottom: 0.4rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #98afab;
+  border-radius: 0.55rem;
+  color: inherit;
+  background: #fff;
+  font: inherit;
+}
+
+.login-form input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.login-form button {
+  margin-top: 0.55rem;
+}
+
+.app-header {
+  background: #fff;
+  border-bottom: 1px solid var(--border);
+}
+
+.app-header-content,
+.attendance-content {
+  width: min(100%, 49rem);
+  margin: 0 auto;
+  padding-inline: clamp(1rem, 4vw, 2rem);
+}
+
+.app-header-content {
+  min-height: 4.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 0.75rem;
+  padding-block: 0.7rem;
+}
+
+.app-header .product-name {
+  margin: 0;
+}
+
+.secondary-button {
+  color: var(--accent);
+  background: #fff;
+  border: 1px solid var(--border);
+}
+
+.secondary-button:not(:disabled):hover {
+  color: var(--accent-hover);
+  background: #edf3f2;
+}
+
+.attendance-content {
+  padding-block: clamp(1.5rem, 5vw, 3rem);
+}
+
+.attendance-card,
+.shift-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 0.85rem;
+}
+
+.attendance-card {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.25rem;
+  padding: clamp(1rem, 4vw, 1.5rem);
+}
+
+.attendance-card h2,
+.history-section h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  line-height: 1.3;
+}
+
+.worker-name,
+.site-name {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.worker-name {
+  margin-bottom: 0.35rem;
+  font-size: 0.9rem;
+}
+
+.site-name {
+  margin-top: 0.35rem;
+}
+
+.attendance-card .summary {
+  margin: 0;
+}
+
+.history-section {
+  margin-top: 2rem;
+}
+
+.shift-list {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0;
+  margin: 0.85rem 0 0;
+  list-style: none;
+}
+
+.shift-card {
+  padding: 1rem;
+}
+
+.shift-title,
+.shift-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.2rem;
+}
+
+.shift-title {
+  justify-content: space-between;
+}
+
+.shift-state {
+  color: var(--accent);
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+
+.shift-details {
+  margin: 0.85rem 0 0;
+}
+
+.shift-details dt {
+  margin-bottom: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.shift-details dd {
+  font-weight: 500;
+}
+
+.form-error,
+.confirmation {
+  margin: 0.85rem 0;
+  padding: 0.75rem 0.9rem;
+  border-radius: 0.55rem;
+  line-height: 1.5;
+}
+
+.form-error {
+  color: #802628;
+  background: #fff0ee;
+}
+
+.confirmation {
+  color: #15504a;
+  background: #dceee8;
+}
+
+.app-header + .form-error {
+  width: min(calc(100% - 2rem), 45rem);
+  margin-inline: auto;
+}
+
+@media (min-width: 40rem) {
+  .attendance-card {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+  }
+
+  .attendance-card p[role="status"],
+  .attendance-card .form-error {
+    grid-column: 1 / -1;
+  }
+}
