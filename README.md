@@ -76,4 +76,7 @@ npm run build
 ## Documentación
 
 - [Alcance del MVP](docs/alcance-mvp.md)
+- [Requisitos del MVP](docs/requisitos.md)
+- [Casos de uso](docs/casos-de-uso.md)
+- [Arquitectura y diagramas](docs/arquitectura.md)
 - [Estado y siguiente hito](docs/estado-proyecto.md)
