@@ -27,10 +27,10 @@ Si ya hay una jornada abierta, una nueva entrada se rechaza. Si la respuesta se 
 **Actor** · Trabajador. **Requisitos** · RF-03, RN-03, RN-04, RN-05, RN-06 y RQ-02.
 
 1. El trabajador con sesión válida y jornada abierta selecciona **Registrar salida**.
-2. La API cierra la jornada abierta con la hora del servidor.
+2. La API comprueba que la jornada indicada sigue abierta y la cierra con la hora del servidor.
 3. La pantalla confirma la salida y el historial muestra la jornada cerrada.
 
-Una salida sin jornada abierta se rechaza. El cambio de fecha local no impide cerrar la jornada. El reintento de la misma salida recupera la confirmación original.
+Si la jornada indicada ya se cerró, la pantalla muestra el motivo del rechazo y actualiza la asistencia. El cambio de fecha local no impide cerrar la jornada. El reintento de la misma salida recupera la confirmación original.
 
 ## CU-04 Consultar historial propio
 

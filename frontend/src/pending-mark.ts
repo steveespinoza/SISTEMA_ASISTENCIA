@@ -7,7 +7,8 @@ export function getPendingMark(username: string): MarkAttempt | null {
     const value = JSON.parse(sessionStorage.getItem(keyFor(username)) ?? "null");
     if (
       value && (value.operacion === "entrada" || value.operacion === "salida") &&
-      typeof value.clave_reintento === "string"
+      typeof value.clave_reintento === "string" &&
+      (value.jornada_id === undefined || typeof value.jornada_id === "string")
     ) {
       return value;
     }

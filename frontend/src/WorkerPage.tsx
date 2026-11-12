@@ -91,9 +91,11 @@ export function WorkerPage({ username, csrfToken, onSessionProblem }: Props) {
 
   async function submitMark() {
     if (!view || busy || (!view.activo && !pending)) return;
+    const openShift = view.jornada_abierta;
     const attempt: MarkAttempt = pending ?? {
-      operacion: view.jornada_abierta ? "salida" : "entrada",
+      operacion: openShift ? "salida" : "entrada",
       clave_reintento: crypto.randomUUID(),
+      jornada_id: openShift?.id,
     };
     remember(attempt);
     setBusy(true);

@@ -81,12 +81,26 @@ def conflict(message: str) -> MarkOutcome:
 
 
 def apply_mark(
-    db: Session, worker: Worker, operation: Operation, clock: Callable[[], datetime]
+    db: Session,
+    worker: Worker,
+    operation: Operation,
+    clock: Callable[[], datetime],
+    *,
+    expected_shift_id: UUID | None,
 ) -> tuple[Shift | None, MarkOutcome]:
     if not worker.activo:
         return None, MarkOutcome(
             {"error": "El trabajador está desactivado.", "codigo": "worker_forbidden"},
             403,
+        )
+
+    if operation == "salida" and expected_shift_id is None:
+        return None, MarkOutcome(
+            {
+                "error": "Actualiza la página antes de volver a registrar la salida.",
+                "codigo": "request_rejected",
+            },
+            400,
         )
 
     shift = db.scalar(
@@ -102,6 +116,10 @@ def apply_mark(
     else:
         if shift is None:
             return None, conflict("No tienes una jornada abierta para cerrar.")
+        if shift.id != expected_shift_id:
+            return None, conflict(
+                "Esa jornada ya se cerró. Revisa tu asistencia y vuelve a marcar."
+            )
         if instant < shift.entrada:
             return None, conflict("La hora de salida es anterior a la entrada.")
         shift.salida = instant
@@ -118,6 +136,8 @@ def register_mark(
     operation: Operation,
     request_key: UUID,
     clock: Callable[[], datetime],
+    *,
+    expected_shift_id: UUID | None,
 ) -> MarkOutcome:
     # Serializa las marcaciones de este trabajador hasta confirmar la transacción.
     worker = get_worker(db, account_id, lock=True)
@@ -125,9 +145,18 @@ def register_mark(
     if previous is not None:
         if previous.operacion != operation:
             return conflict("La solicitud ya se usó para otra operación.")
+        if (
+            expected_shift_id is not None
+            and previous.jornada_id is not None
+            and expected_shift_id != previous.jornada_id
+        ):
+            return conflict("La solicitud ya se usó para otra jornada.")
+        # Los reintentos antiguos sin jornada aún pueden recuperar su resultado.
         return MarkOutcome(previous.resultado, previous.estado_http)
 
-    shift, outcome = apply_mark(db, worker, operation, clock)
+    shift, outcome = apply_mark(
+        db, worker, operation, clock, expected_shift_id=expected_shift_id
+    )
     db.add(
         MarkRequest(
             cuenta_id=account_id,
