@@ -12,6 +12,7 @@ from sqlalchemy import delete, func, select, text
 from sqlalchemy.exc import IntegrityError
 from werkzeug.security import generate_password_hash
 
+from asistencia import admin as admin_module
 from asistencia import attendance, create_app, history
 from asistencia.attendance_service import shift_details
 from asistencia.models import Account, MarkRequest, Shift, Site, Worker
@@ -147,7 +148,7 @@ def test_session_credentials_and_csrf(app, sample):
     assert client.get("/api/asistencia").status_code == 401
 
 
-def test_shift_closes_after_midnight_and_replays_original_confirmation(
+def test_shift_closes_on_same_local_day_and_replays_original_confirmation(
     app, sample, monkeypatch
 ):
     client = app.test_client()
@@ -159,9 +160,9 @@ def test_shift_closes_after_midnight_and_replays_original_confirmation(
     )
     assert rejected.status_code == 409
 
-    # En Lima son las 22:00 y las 06:00 del día siguiente.
-    start = datetime(2026, 11, 13, 3, tzinfo=UTC)
-    end = datetime(2026, 11, 13, 11, tzinfo=UTC)
+    # En Lima son las 14:00 y las 22:00 del mismo día.
+    start = datetime(2026, 11, 12, 19, tzinfo=UTC)
+    end = datetime(2026, 11, 13, 3, tzinfo=UTC)
     entry_key, exit_key = uuid4(), uuid4()
     monkeypatch.setattr(attendance, "utc_now", lambda: start)
     entry = mark(client, token, "entrada", entry_key, entrada="2000-01-01T00:00:00Z")
@@ -185,6 +186,8 @@ def test_shift_closes_after_midnight_and_replays_original_confirmation(
     assert closed["jornada"]["sede"] == original["jornada"]["sede"]
     assert closed["jornada"]["salida"] == end.isoformat()
     assert closed["jornada"]["duracion_segundos"] == 8 * 60 * 60
+    assert mark(client, token, "entrada").status_code == 409
+    monkeypatch.setattr(attendance, "utc_now", lambda: end + timedelta(days=1))
     assert (
         mark(client, token, "salida", exit_key, jornada_id=shift_id).get_json()
         == closed
@@ -199,6 +202,55 @@ def test_shift_closes_after_midnight_and_replays_original_confirmation(
     assert history["jornada_abierta"] is None
     assert history["jornadas"] == [closed["jornada"]]
     assert history["sede"] != closed["jornada"]["sede"]
+
+
+def test_new_day_allows_entry_and_preserves_previous_missing_exit(
+    app, sample, monkeypatch
+):
+    client = app.test_client()
+    token = login(client, sample.username)
+    current_time = datetime(2026, 11, 13, 4, 59, tzinfo=UTC)
+    monkeypatch.setattr(attendance, "utc_now", lambda: current_time)
+    monkeypatch.setattr(admin_module, "utc_now", lambda: current_time)
+    entry_key = uuid4()
+    entry = mark(client, token, "entrada", entry_key)
+    assert entry.status_code == 200
+    previous = entry.json["jornada"]
+    assert previous["estado"] == "abierta"
+
+    current_time += timedelta(minutes=1)
+    view = client.get("/api/asistencia").json
+    assert view["jornada_abierta"] is None and view["jornada_hoy"] is None
+    assert view["jornadas"] == [{**previous, "estado": "sin_salida"}]
+    assert mark(client, token, "entrada", entry_key).json == entry.json
+
+    next_entry = mark(client, token, "entrada")
+    assert next_entry.status_code == 200
+    assert next_entry.json["jornada"]["id"] != previous["id"]
+    assert mark(client, token, "salida", jornada_id=previous["id"]).status_code == 409
+    assert mark(client, token, "entrada").status_code == 409
+
+    admin = app.test_client()
+    admin_token = login(admin, sample.admin_username)
+    page = admin.get(
+        "/api/admin/jornadas",
+        query_string={
+            "desde": "2026-11-12",
+            "hasta": "2026-11-13",
+            "trabajador_id": str(sample.worker_id),
+        },
+    ).json
+    assert [item["estado"] for item in page["jornadas"]] == ["abierta", "sin_salida"]
+    assert page["jornadas"][1]["salida"] is None
+    assert page["jornadas"][1]["duracion_segundos"] is None
+    current_time += timedelta(days=1)
+    assert (
+        admin.post(
+            f"/api/admin/trabajadores/{sample.worker_id}/desactivar",
+            headers={"X-CSRF-Token": admin_token},
+        ).status_code
+        == 200
+    )
 
 
 def test_stale_exit_cannot_close_a_new_shift(app, sample, monkeypatch):
@@ -219,6 +271,9 @@ def test_stale_exit_cannot_close_a_new_shift(app, sample, monkeypatch):
         first_client, first_token, "salida", first_exit_key, jornada_id=first_id
     )
     assert first_exit.status_code == 200
+    monkeypatch.setattr(
+        attendance, "utc_now", lambda: datetime(2026, 11, 14, 11, tzinfo=UTC)
+    )
     next_entry = mark(first_client, first_token, "entrada")
     assert next_entry.status_code == 200
     next_shift = next_entry.json["jornada"]
@@ -310,7 +365,10 @@ def test_bootstrap_creates_only_the_first_admin(app):
             )
 
 
-def test_admin_manages_sites_and_worker_through_deactivation(app, sample):
+def test_admin_manages_sites_and_worker_through_deactivation(app, sample, monkeypatch):
+    now = datetime(2026, 11, 13, 11, tzinfo=UTC)
+    monkeypatch.setattr(attendance, "utc_now", lambda: now)
+    monkeypatch.setattr(admin_module, "utc_now", lambda: now)
     admin = app.test_client()
     assert admin.get("/api/admin").status_code == 401
     admin_token = login(admin, sample.admin_username)
@@ -420,6 +478,7 @@ def test_admin_manages_sites_and_worker_through_deactivation(app, sample):
         assert first_exit.status_code == 200
         assert first_exit.json["jornada"]["sede"] == renamed
 
+        now += timedelta(days=1)
         next_entry = mark(new_worker, token, "entrada")
         assert next_entry.status_code == 200
         assert next_entry.json["jornada"]["sede"] != renamed
@@ -502,6 +561,7 @@ def test_admin_history_filters_by_local_entry_date_and_recorded_site(
 ):
     monkeypatch.setattr(history, "PAGE_SIZE", 2)
     monday = datetime(2026, 11, 16, 5, tzinfo=UTC)
+    monkeypatch.setattr(admin_module, "utc_now", lambda: monday + timedelta(hours=10))
     tuesday = monday + timedelta(days=1)
     first_id, overnight_id, open_id, tuesday_id = (uuid4() for _ in range(4))
     with app.extensions["database_sessions"].begin() as db:
@@ -610,7 +670,10 @@ def test_history_respects_local_midnight_and_elapsed_time_when_clocks_change():
         entrada=lower.astimezone(timezone),
         salida=upper.astimezone(timezone),
     )
-    assert shift_details(shift, "Sede de prueba")["duracion_segundos"] == 25 * 60 * 60
+    assert (
+        shift_details(shift, "Sede de prueba", lower)["duracion_segundos"]
+        == 25 * 60 * 60
+    )
 
 
 @pytest.mark.parametrize("same_key", [False, True])

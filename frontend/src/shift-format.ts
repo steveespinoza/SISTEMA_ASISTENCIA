@@ -6,3 +6,8 @@ export function companyTimeFormatter(timeZone?: string) {
     hourCycle: "h23",
   });
 }
+export const shiftStateLabel = {
+  abierta: "Abierta",
+  cerrada: "Cerrada",
+  sin_salida: "Sin salida",
+};

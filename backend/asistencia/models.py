@@ -52,11 +52,14 @@ class Shift(Base):
     __tablename__ = "jornadas"
     __table_args__ = (
         CheckConstraint("salida IS NULL OR salida >= entrada", name="tiempo_ordenado"),
+        CheckConstraint(
+            "NOT sin_salida OR salida IS NULL", name="sin_salida_coherente"
+        ),
         Index(
             "uq_jornadas_trabajador_abierta",
             "trabajador_id",
             unique=True,
-            postgresql_where=text("salida IS NULL"),
+            postgresql_where=text("salida IS NULL AND NOT sin_salida"),
         ),
         Index("ix_jornadas_trabajador_entrada", "trabajador_id", "entrada"),
     )
@@ -66,6 +69,7 @@ class Shift(Base):
     sede_id: Mapped[UUID] = mapped_column(ForeignKey("sedes.id"))
     entrada: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     salida: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    sin_salida: Mapped[bool] = mapped_column(server_default=text("false"))
 
 
 class MarkRequest(Base):

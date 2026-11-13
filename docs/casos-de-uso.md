@@ -20,17 +20,17 @@ Con credenciales inválidas, el sistema informa el error y mantiene el formulari
 2. La API comprueba que puede marcar, toma la hora del servidor y abre la jornada con la sede asignada.
 3. La pantalla confirma la entrada e indica la sede y la hora registrada.
 
-Si ya hay una jornada abierta, una nueva entrada se rechaza. Si la respuesta se pierde, el trabajador puede reintentar la misma solicitud y recuperar su confirmación.
+Si ya registró la entrada del día, una segunda entrada se rechaza. Una jornada del día anterior que quedó pendiente figura como **Sin salida** y permite registrar la entrada del día actual. Si la respuesta se pierde, el trabajador puede reintentar la misma solicitud y recuperar su confirmación.
 
 ## CU-03 Registrar salida
 
 **Actor** · Trabajador. **Requisitos** · RF-03, RN-03, RN-04, RN-05, RN-06 y RQ-02.
 
 1. El trabajador con sesión válida y jornada abierta selecciona **Registrar salida**.
-2. La API comprueba que la jornada indicada sigue abierta y la cierra con la hora del servidor.
+2. La API comprueba que la jornada indicada sigue abierta y pertenece al día actual en la zona horaria de la empresa. La cierra con la hora del servidor.
 3. La pantalla confirma la salida y el historial muestra la jornada cerrada.
 
-Si la jornada indicada ya se cerró, la pantalla muestra el motivo del rechazo y actualiza la asistencia. El cambio de fecha local no impide cerrar la jornada. El reintento de la misma salida recupera la confirmación original.
+Si la jornada indicada ya se cerró o cambió el día, la pantalla muestra el motivo del rechazo y actualiza la asistencia. El reintento de una salida ya registrada recupera la confirmación original.
 
 ## CU-04 Consultar historial propio
 
@@ -58,7 +58,7 @@ El sistema muestra un estado vacío si todavía no hay jornadas. Una solicitud d
 2. Cuando el administrador solicita la desactivación, la API comprueba si el trabajador tiene una jornada abierta.
 3. El sistema desactiva al trabajador, bloquea nuevas marcaciones y conserva sus jornadas para el historial.
 
-Si hay una jornada abierta, la API rechaza la desactivación y mantiene al trabajador activo. El trabajador debe marcar su salida antes de que el administrador vuelva a solicitarla.
+Si hay una jornada abierta del día, la API rechaza la desactivación y mantiene al trabajador activo. El administrador puede volver a solicitarla cuando el trabajador marque la salida o cambie el día.
 
 ## CU-07 Consultar asistencia del personal
 
@@ -66,4 +66,4 @@ Si hay una jornada abierta, la API rechaza la desactivación y mantiene al traba
 
 1. El administrador abre el historial y elige un período. Puede filtrar por trabajador y sede.
 2. La API devuelve las jornadas cuya fecha de entrada cae en el período, incluidas ambas fechas en la zona horaria de la empresa. Los filtros opcionales usan el trabajador y la sede registrada en la jornada.
-3. La vista muestra los filtros activos y distingue las jornadas abiertas de las cerradas. Ordena las entradas de más reciente a más antigua y permite avanzar por páginas. Si el filtro no devuelve registros, indica que no hubo coincidencias.
+3. La vista muestra los filtros activos y distingue las jornadas abiertas, cerradas y sin salida. Ordena las entradas de más reciente a más antigua y permite avanzar por páginas. Si el filtro no devuelve registros, indica que no hubo coincidencias.

@@ -5,12 +5,12 @@ La base permite que una empresa registre quién trabajó, cuándo marcó y en qu
 ## Funciones incluidas
 
 - **Acceso.** El administrador y el trabajador inician sesión con nombre de usuario y contraseña.
-- **Administrador.** Gestiona trabajadores y sedes. Consulta jornadas abiertas y cerradas con filtros por trabajador, sede y fecha de entrada.
+- **Administrador.** Gestiona trabajadores y sedes. Consulta jornadas abiertas, cerradas y sin salida con filtros por trabajador, sede y fecha de entrada.
 - **Trabajador.** Registra su propia entrada y salida desde una cuenta y consulta su historial.
-- **Jornada.** La entrada registra al trabajador, la sede asignada y la hora del servidor. Cada trabajador puede tener una sola jornada abierta. La salida cierra esa jornada, incluso si ocurre después de medianoche.
-- **Historial.** Una nueva asignación de sede conserva las jornadas anteriores. El administrador puede desactivar a un trabajador cuando no tiene una jornada abierta. La desactivación conserva el historial e impide nuevas marcaciones.
+- **Jornada.** La entrada registra al trabajador, la sede asignada y la hora del servidor. Se admite una asistencia por trabajador y día calendario en la zona horaria de la empresa. La salida se registra el mismo día. Al cambiar el día, una jornada pendiente figura como **Sin salida** y se puede registrar la nueva entrada.
+- **Historial.** Una nueva asignación de sede conserva las jornadas anteriores. El administrador puede desactivar a un trabajador cuando no tiene una jornada abierta del día. La desactivación conserva el historial e impide nuevas marcaciones.
 - **Tiempo.** Los instantes se almacenan en UTC y se muestran en la zona horaria de la empresa. El historial presenta el tiempo transcurrido de la jornada cerrada.
-- **Reintentos.** Repetir la misma solicitud de marcación devuelve el resultado original. Las solicitudes simultáneas respetan la regla de una sola jornada abierta.
+- **Reintentos.** Repetir la misma solicitud de marcación devuelve el resultado original. Las solicitudes simultáneas respetan el límite de una asistencia por día.
 
 ## Extensiones por solicitud
 

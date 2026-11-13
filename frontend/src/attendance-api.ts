@@ -21,6 +21,7 @@ export type Shift = {
   sede: string;
   entrada: string;
   salida: string | null;
+  estado: "abierta" | "cerrada" | "sin_salida";
   duracion_segundos: number | null;
 };
 
@@ -29,6 +30,8 @@ export type AttendanceView = {
   sede: string;
   activo: boolean;
   jornada_abierta: Shift | null;
+  jornada_hoy: Shift | null;
+  actualizar_en_ms: number;
   jornadas: Shift[];
   zona_horaria: string;
 };

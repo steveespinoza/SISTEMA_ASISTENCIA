@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { getHistory, type Directory, type HistoryPage, type HistoryQuery } from "./admin-api";
 import { ApiProblem, isSessionProblem } from "./attendance-api";
-import { companyTimeFormatter } from "./shift-format";
+import { companyTimeFormatter, shiftStateLabel } from "./shift-format";
 import { ShiftDetails } from "./ShiftDetails";
 
 const periodFormatter = new Intl.DateTimeFormat("es-PE", { dateStyle: "medium", timeZone: "UTC" });
@@ -130,7 +130,7 @@ export function AdminHistory({ directory, onSessionProblem }: {
                           <strong>{workerLabel(shift.trabajador, workers.get(shift.trabajador_id)?.usuario)}</strong>
                           <p className="site-name">{shift.sede}</p>
                         </div>
-                        <span className="shift-state">{shift.salida ? "Cerrada" : "Abierta"}</span>
+                        <span className="shift-state">{shiftStateLabel[shift.estado]}</span>
                       </div>
                       <ShiftDetails shift={shift} formatter={formatter} />
                     </li>

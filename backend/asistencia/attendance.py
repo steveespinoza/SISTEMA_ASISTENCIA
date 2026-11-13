@@ -1,4 +1,5 @@
 from uuid import UUID
+from zoneinfo import ZoneInfo
 
 from flask import Blueprint, Response, current_app, jsonify, request
 
@@ -28,9 +29,10 @@ def require_account() -> UUID:
 @attendance_api.get("")
 def own_attendance() -> Response:
     account_id = require_account()
+    timezone = current_app.config["COMPANY_TIMEZONE"]
     with database_sessions()() as db:
-        view = attendance_view(db, account_id)
-    return jsonify(**view, zona_horaria=current_app.config["COMPANY_TIMEZONE"])
+        view = attendance_view(db, account_id, utc_now(), ZoneInfo(timezone))
+    return jsonify(**view, zona_horaria=timezone)
 
 
 @attendance_api.post("/marcaciones")
@@ -66,6 +68,7 @@ def mark() -> tuple[Response, int]:
             operation,
             request_key,
             utc_now,
+            ZoneInfo(current_app.config["COMPANY_TIMEZONE"]),
             expected_shift_id=expected_shift_id,
         )
     return jsonify(**result.body), result.status
