@@ -23,15 +23,22 @@ Las reglas de marcación se comprueban con pruebas sobre PostgreSQL, incluidas e
 
 ## Desarrollo local
 
-Necesitas Python 3.13, uv, Node.js 24 con npm y Docker con Compose. Compose inicia PostgreSQL 17 y deja el puerto 5432 disponible en la máquina local.
+Necesitas Python 3.13, uv, Node.js 24 con npm y una base PostgreSQL. Flask y Vite se ejecutan en tu equipo.
 
-Desde la raíz del repositorio, copia `.env.example` a `.env`. En PowerShell puedes usar `Copy-Item .env.example .env`. Luego inicia PostgreSQL:
+### Configurar la base de datos
+
+Desde la raíz del repositorio, copia `.env.example` a `.env` si aún no existe. En PowerShell puedes usar `Copy-Item .env.example .env`. Configura `DATABASE_URL` según la base que uses.
+
+- **Neon.** En **Connect**, selecciona la base de desarrollo y desactiva **Connection pooling** para copiar su URL directa. Pega la URL completa en `DATABASE_URL`. El backend acepta el prefijo `postgresql://` de Neon y conserva los parámetros de conexión, incluido `sslmode=require`. Git excluye `.env`, que contiene la contraseña de la base. [Conexión a Neon](https://neon.com/docs/connect/connect-from-any-app)
+- **PostgreSQL en tu equipo.** Puedes apuntar `DATABASE_URL` a una base de desarrollo existente. Si prefieres Docker, deja la URL de ejemplo y ejecuta este comando desde la raíz. Compose inicia PostgreSQL 17 en el puerto local 5432.
 
 ```sh
 docker compose up -d --wait db
 ```
 
-En una terminal, instala las dependencias y genera una clave de sesión:
+### Iniciar Flask y Vite
+
+En una terminal, instala las dependencias del backend. Si `FLASK_SECRET_KEY` está vacía, genera una clave de sesión:
 
 ```sh
 cd backend
@@ -39,15 +46,19 @@ uv sync --locked
 uv run --locked python -c "import secrets; print(secrets.token_hex(32))"
 ```
 
-Copia el resultado a `FLASK_SECRET_KEY` en tu `.env`. Aplica la migración, carga los datos ficticios e inicia la API:
+Guarda la clave en `FLASK_SECRET_KEY` en tu `.env` y usa `SESSION_COOKIE_SECURE=0` para el HTTP local. Desde `backend/`, aplica las migraciones:
 
 ```sh
 uv run --locked alembic upgrade head
-uv run --locked flask --app asistencia cargar-demo
-uv run --locked flask --app asistencia run
 ```
 
-`cargar-demo` crea el usuario `demo.trabajador` y te pide elegir su contraseña. Si vuelves a ejecutar el comando, conserva la cuenta y su contraseña.
+Si quieres una cuenta ficticia para probar la marcación, ejecuta `uv run --locked flask --app asistencia cargar-demo`. El comando crea `demo.trabajador` y pide elegir su contraseña. Si ya existe, conserva la cuenta y su contraseña. Si ya tienes una cuenta en la base, puedes usarla directamente.
+
+Inicia Flask en esa terminal:
+
+```sh
+uv run --locked flask --app asistencia run
+```
 
 En otra terminal, desde la raíz del repositorio:
 
@@ -57,11 +68,9 @@ npm ci
 npm run dev
 ```
 
-Abre [http://127.0.0.1:5173](http://127.0.0.1:5173) e ingresa con `demo.trabajador`. Marca la entrada y la salida. En **Historial** verás la jornada cerrada con la sede, las horas y la duración.
+Abre [http://127.0.0.1:5173](http://127.0.0.1:5173) e ingresa con tu cuenta. Para probar el flujo de un trabajador, marca la entrada y la salida. En **Historial** verás la jornada cerrada con la sede, las horas y la duración.
 
 La pantalla de [estado del sistema](http://127.0.0.1:5173/estado) comprueba la API y PostgreSQL. Vite reenvía `/api` a Flask en `http://127.0.0.1:5000`.
-
-Para usar una instancia local de PostgreSQL existente, crea una base de desarrollo vacía y ajusta `DATABASE_URL` en `.env` con una URL `postgresql+psycopg://…`.
 
 ### Gestión administrativa
 
@@ -88,7 +97,7 @@ uv run --locked alembic check
 uv run --locked pytest
 ```
 
-Para ejecutar las pruebas de integración, aplica las migraciones a una base PostgreSQL descartable y define `TEST_DATABASE_URL` con su URL. CI prepara su propia base para esta suite.
+Para ejecutar las pruebas de integración, aplica las migraciones a una base PostgreSQL descartable y define `TEST_DATABASE_URL` con su URL `postgresql+psycopg://…`. CI prepara su propia base para esta suite.
 
 Desde `frontend/`:
 
