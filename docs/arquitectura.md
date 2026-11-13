@@ -61,7 +61,8 @@ erDiagram
         uuid trabajador_id FK
         uuid sede_id FK
         timestamptz entrada
-        timestamptz salida "Vacía mientras esté abierta"
+        timestamptz salida "Vacía si no se registró la salida"
+        boolean sin_salida "Marca una jornada vencida"
     }
 
     SOLICITUD_MARCACION {
@@ -74,7 +75,7 @@ erDiagram
     }
 ```
 
-La sede de la jornada se registra al abrirla. El estado se puede derivar de la hora de salida. PostgreSQL puede imponer una sola jornada abierta por trabajador mediante un índice único parcial sobre las jornadas cuya salida esté vacía. Una marcación y su resultado se confirman en la misma transacción. El resultado asociado a la clave incluye las confirmaciones y los rechazos de negocio.
+La sede de la jornada se registra al abrirla. Las consultas muestran **Sin salida** para una jornada anterior al día actual que sigue sin hora de salida. Antes de procesar una nueva marcación o una desactivación, el servicio bloquea la fila del trabajador y marca como vencida su jornada pendiente de un día anterior. La misma transacción comprueba el límite de una entrada por día y conserva el resultado de la solicitud. El índice único parcial permite una sola jornada pendiente por trabajador y excluye las jornadas marcadas sin salida.
 
 ## Secuencia de marcación
 

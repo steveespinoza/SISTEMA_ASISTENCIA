@@ -20,6 +20,7 @@ El [alcance del MVP](alcance-mvp.md) recoge las reglas iniciales y las funciones
 | Administración | El [alta inicial](../README.md#gestión-administrativa) habilita la primera cuenta administrativa. Su vista permite crear y editar sedes, registrar y reasignar trabajadores y desactivarlos cuando su jornada esté cerrada. |
 | Historial administrativo | El administrador puede [consultar jornadas](casos-de-uso.md#cu-07-consultar-asistencia-del-personal) abiertas y cerradas por fecha de entrada, trabajador y sede registrada. El período usa la zona horaria de la empresa. |
 | Base de desarrollo | Flask y Vite se ejecutan en local y pueden usar PostgreSQL en Neon. El [README](../README.md#configurar-la-base-de-datos) explica cómo configurar la conexión directa. |
+| Asistencia diaria | Se admite una asistencia por día en la zona horaria de la empresa. Las jornadas vencidas quedan como **Sin salida** y permiten marcar una nueva entrada. |
 
 ## Siguiente paso
 

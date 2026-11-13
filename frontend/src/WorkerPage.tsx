@@ -10,7 +10,7 @@ import {
   type Shift,
 } from "./attendance-api";
 import { getPendingMark, savePendingMark } from "./pending-mark";
-import { companyTimeFormatter } from "./shift-format";
+import { companyTimeFormatter, shiftStateLabel } from "./shift-format";
 import { ShiftDetails } from "./ShiftDetails";
 
 type Props = {
@@ -29,7 +29,7 @@ function History({ shifts, formatter }: { shifts: Shift[]; formatter: Intl.DateT
             <li className="shift-card" key={shift.id}>
               <div className="shift-title">
                 <strong>{shift.sede}</strong>
-                <span className="shift-state">{shift.salida ? "Cerrada" : "Abierta"}</span>
+                <span className="shift-state">{shiftStateLabel[shift.estado]}</span>
               </div>
               <ShiftDetails shift={shift} formatter={formatter} />
             </li>
@@ -68,6 +68,16 @@ export function WorkerPage({ username, csrfToken, onSessionProblem }: Props) {
     return () => controller.abort();
   }, [onSessionProblem, refresh]);
 
+  useEffect(() => {
+    if (!view) return;
+    const timer = window.setTimeout(() => {
+      setView(null);
+      setConfirmation(null);
+      setRefresh((value) => value + 1);
+    }, Math.max(100, view.actualizar_en_ms));
+    return () => window.clearTimeout(timer);
+  }, [view]);
+
   function reload() {
     setLoadError("");
     setView(null);
@@ -79,8 +89,10 @@ export function WorkerPage({ username, csrfToken, onSessionProblem }: Props) {
     setPending(attempt);
   }
 
+  const canMark = view?.activo && (!view.jornada_hoy || view.jornada_abierta !== null);
+
   async function submitMark() {
-    if (!view || busy || (!view.activo && !pending)) return;
+    if (!view || busy || (!pending && !canMark)) return;
     const openShift = view.jornada_abierta;
     const attempt: MarkAttempt = pending ?? {
       operacion: openShift ? "salida" : "entrada",
@@ -139,14 +151,15 @@ export function WorkerPage({ username, csrfToken, onSessionProblem }: Props) {
           <section className="attendance-card" aria-labelledby="shift-title">
             <div>
               <p className="worker-name">{view.nombre}</p>
-              <h2 id="shift-title">{view.jornada_abierta ? "Jornada abierta" : "Sin jornada abierta"}</h2>
-              <p className="site-name">{view.jornada_abierta?.sede ?? view.sede}</p>
+              <h2 id="shift-title">{view.jornada_abierta ? "Jornada abierta" :
+                view.jornada_hoy ? "Asistencia de hoy registrada" : "Sin jornada abierta"}</h2>
+              <p className="site-name">{view.jornada_hoy?.sede ?? view.sede}</p>
             </div>
             {!view.activo && <p className="form-error">Trabajador desactivado.</p>}
             {pending && !busy && !actionError && (
               <p className="summary" role="status">Tienes una marcación pendiente de confirmar.</p>
             )}
-            {(view.activo || pending) && (
+            {(pending || canMark) && (
               <button type="button" onClick={submitMark} disabled={busy}>
                 {busy ? "Enviando…" : pending ? "Reintentar " + pending.operacion :
                   view.jornada_abierta ? "Registrar salida" : "Registrar entrada"}

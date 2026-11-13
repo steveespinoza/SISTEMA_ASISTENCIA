@@ -18,7 +18,7 @@ from asistencia.accounts import (
     USERNAME_LIMIT,
     create_account,
 )
-from asistencia.attendance_service import find_open_shift
+from asistencia.attendance_service import current_open_shift, day_bounds, utc_now
 from asistencia.history import PAGE_SIZE, history_page, period_bounds
 from asistencia.http import (
     ApiError,
@@ -164,6 +164,7 @@ def attendance_history() -> Response:
             db,
             lower,
             upper,
+            day_start=day_bounds(utc_now(), ZoneInfo(timezone))[0],
             worker_id=history_id("trabajador_id", "Selecciona un trabajador válido."),
             site_id=history_id("sede_id", "Selecciona una sede válida."),
             page=page,
@@ -239,7 +240,10 @@ def deactivate_worker(worker_id: UUID) -> Response:
         worker = db.get(Worker, worker_id, with_for_update=True)
         if worker is None:
             raise ApiError(404, "El trabajador no existe.")
-        if find_open_shift(db, worker.id) is not None:
+        day_start, _ = day_bounds(
+            utc_now(), ZoneInfo(current_app.config["COMPANY_TIMEZONE"])
+        )
+        if current_open_shift(db, worker.id, day_start) is not None:
             raise ApiError(
                 409,
                 "El trabajador debe registrar su salida antes de desactivarlo.",

@@ -29,6 +29,7 @@ def history_page(
     lower: datetime,
     upper: datetime,
     *,
+    day_start: datetime,
     worker_id: UUID | None,
     site_id: UUID | None,
     page: int,
@@ -51,7 +52,7 @@ def history_page(
     return {
         "jornadas": [
             {
-                **shift_details(shift, site),
+                **shift_details(shift, site, day_start),
                 "trabajador": worker,
                 "trabajador_id": str(shift.trabajador_id),
                 "sede_id": str(shift.sede_id),

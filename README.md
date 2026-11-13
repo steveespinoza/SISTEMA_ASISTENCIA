@@ -11,7 +11,7 @@ En local, el trabajador puede iniciar sesión, marcar su entrada y salida y cons
 | Trabajador | Registrar su propia entrada y salida, ver la confirmación de la marcación y consultar su historial. |
 | Administrador | Gestionar trabajadores y sedes, y consultar jornadas abiertas y cerradas con filtros. |
 
-Cada trabajador podrá tener una sola jornada abierta. Si falla la conexión y vuelve a enviar la marcación, se conservará un único registro. El historial mantendrá la sede donde se registró cada jornada.
+Cada trabajador puede registrar una asistencia por día en la zona horaria de la empresa. Si falta la salida al terminar el día, la jornada queda como **Sin salida** y el día siguiente admite una nueva entrada. Si falla la conexión y se reintenta la misma marcación, se conserva un único registro. El historial mantiene la sede registrada.
 
 La primera versión cubrirá la marcación y el historial. Funciones como geocercas, fotos o reglas de planilla se incorporarán según cómo trabaje cada empresa.
 
@@ -19,7 +19,7 @@ La primera versión cubrirá la marcación y el historial. Funciones como geocer
 
 Elegí **React con TypeScript** para la interfaz y **Flask** para la API. La API será un monolito modular para desplegar un solo servicio y mantener claras las responsabilidades de identidad, personal, asistencia y consultas. Usaré **PostgreSQL** con **SQLAlchemy** y **Alembic** para el acceso a datos y las migraciones.
 
-Las reglas de marcación se comprueban con pruebas sobre PostgreSQL, incluidas entradas simultáneas, reintentos y jornadas que cruzan medianoche.
+Las reglas de marcación se comprueban con pruebas sobre PostgreSQL, incluidas entradas simultáneas, reintentos y el cambio de día en la zona horaria de la empresa.
 
 ## Desarrollo local
 
@@ -82,9 +82,9 @@ uv run --locked flask --app asistencia crear-administrador
 
 El comando solicita un usuario y una contraseña. Con esa cuenta, abre **Sedes** para registrar una sede y luego **Trabajadores** para crear una cuenta de trabajador con una contraseña inicial y una sede asignada.
 
-Puedes editar los datos del trabajador y cambiar su sede para futuras entradas. Para desactivarlo, primero debe registrar la salida de cualquier jornada abierta. Su historial seguirá disponible y las marcaciones nuevas se rechazarán.
+Puedes editar los datos del trabajador y cambiar su sede para futuras entradas. Una jornada abierta del día impide desactivarlo hasta que registre la salida o cambie el día. Su historial seguirá disponible y las marcaciones nuevas se rechazarán.
 
-En **Historial**, elige las fechas de inicio y fin y, si hace falta, filtra por trabajador o sede. El período incluye ambas fechas según la hora de entrada en la zona horaria de la empresa. Si una jornada cruza medianoche, aparece en el día en que empezó. El filtro de sede usa la sede registrada en la jornada.
+En **Historial**, elige las fechas de inicio y fin y, si hace falta, filtra por trabajador o sede. El período incluye ambas fechas según la hora de entrada en la zona horaria de la empresa. Una jornada **Sin salida** conserva la entrada y la sede. Su duración queda vacía.
 
 ### Verificación
 

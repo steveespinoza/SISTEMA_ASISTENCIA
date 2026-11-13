@@ -12,19 +12,19 @@ El sistema registra la asistencia de una empresa con varias sedes. El [alcance d
 | RF-04 | Mostrar al trabajador su historial con sede, entrada, salida, estado y duración de las jornadas cerradas. | Marcación |
 | RF-05 | Permitir que el administrador gestione sedes y asigne una sede a cada trabajador. | Administración |
 | RF-06 | Permitir que el administrador gestione y desactive trabajadores conservando sus jornadas. | Administración |
-| RF-07 | Permitir que el administrador consulte jornadas abiertas y cerradas por trabajador, sede y fecha de entrada. | Administración |
+| RF-07 | Permitir que el administrador consulte jornadas abiertas, cerradas y sin salida por trabajador, sede y fecha de entrada. | Administración |
 
 ## Reglas de negocio
 
 | ID | Regla | Cómo comprobarla |
 | --- | --- | --- |
 | RN-01 | La entrada abre una jornada y toma la sede asignada al trabajador en ese momento. | La jornada conserva esa sede si la asignación del trabajador cambia después. |
-| RN-02 | Cada trabajador puede tener una sola jornada abierta. | Dos entradas simultáneas con identificadores distintos dejan una sola jornada abierta. La otra petición recibe un conflicto. |
-| RN-03 | La salida identifica la jornada que el trabajador está viendo y solo la cierra si sigue abierta, aunque la fecha local haya cambiado. | Una entrada a las 22:00 y una salida a las 06:00 del día siguiente forman una jornada cerrada de 8 horas. Si otra sesión ya cerró esa jornada y abrió una nueva, la salida de la pantalla anterior se rechaza y la jornada nueva sigue abierta. |
+| RN-02 | Cada trabajador puede registrar una asistencia por día calendario en la zona horaria de la empresa. | Dos entradas simultáneas dejan una sola jornada. Otra entrada el mismo día se rechaza aunque la jornada ya esté cerrada. |
+| RN-03 | La salida solo cierra la jornada indicada si sigue abierta y pertenece al día actual. | Si falta la salida al cambiar el día, la jornada figura como **Sin salida** con hora de salida y duración vacías. La entrada del día siguiente abre una nueva jornada. Una salida desde una pantalla desactualizada se rechaza. |
 | RN-04 | La hora de marcación viene del servidor. Los instantes se guardan en UTC y se muestran en la zona horaria de la empresa. | Una hora incorrecta en el celular deja intacto el instante registrado por la API. |
 | RN-05 | Un reintento de la misma marcación con el mismo identificador devuelve el resultado original. | Si se pierde la respuesta de una entrada exitosa, el reintento confirma la misma jornada y la misma hora. Aplica también a la salida. |
-| RN-06 | Un trabajador solo se puede desactivar cuando no tiene una jornada abierta. Una vez desactivado, conserva su historial y queda inhabilitado para nuevas marcaciones. | Con una jornada abierta, la API rechaza la desactivación y el trabajador sigue activo. Después de que marque la salida, el administrador puede desactivarlo. El historial se conserva y la API rechaza nuevas marcaciones, incluso si el trabajador ya tenía una sesión. |
-| RN-07 | El filtro por período usa la fecha de entrada en la zona horaria de la empresa. | Una jornada que empieza el lunes a las 22:00 y termina el martes a las 06:00 aparece al filtrar por lunes. |
+| RN-06 | Una jornada abierta del día impide desactivar al trabajador. Una vez desactivado, conserva su historial y queda inhabilitado para nuevas marcaciones. | La API rechaza la desactivación si hay una jornada pendiente del día. La permite tras registrar la salida o al cambiar el día. Las marcaciones nuevas se rechazan incluso con una sesión previa. |
+| RN-07 | El filtro por período usa la fecha de entrada en la zona horaria de la empresa. | Una jornada del lunes que queda **Sin salida** aparece al filtrar por lunes. |
 
 ## Requisitos de calidad
 

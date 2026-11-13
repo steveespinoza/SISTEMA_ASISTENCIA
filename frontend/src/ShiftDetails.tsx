@@ -10,7 +10,9 @@ export function ShiftDetails({ shift, formatter }: { shift: Shift; formatter: In
   return (
     <dl className="shift-details">
       <div><dt>Entrada</dt><dd>{formatter.format(new Date(shift.entrada))}</dd></div>
-      <div><dt>Salida</dt><dd>{shift.salida ? formatter.format(new Date(shift.salida)) : "Pendiente"}</dd></div>
+      {shift.estado !== "sin_salida" && (
+        <div><dt>Salida</dt><dd>{shift.salida ? formatter.format(new Date(shift.salida)) : "Pendiente"}</dd></div>
+      )}
       {shift.duracion_segundos !== null && (
         <div><dt>Duración</dt><dd>{durationLabel(shift.duracion_segundos)}</dd></div>
       )}
