@@ -4,7 +4,9 @@ version = "0.1.0"
 requires-python = ">=3.13,<3.14"
 dependencies = [
     "alembic>=1.16,<2",
+    "boto3[crt]>=1.41,<2",
     "flask>=3.1,<4",
+    "pillow>=12.3,<13",
     "psycopg[binary]>=3.2,<4",
     "python-dotenv>=1.1,<2",
     "sqlalchemy>=2.0,<2.1",

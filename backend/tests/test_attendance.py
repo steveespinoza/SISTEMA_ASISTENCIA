@@ -2,12 +2,15 @@ import os
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
+from io import BytesIO
 from threading import Barrier, Event
 from time import monotonic, sleep
 from uuid import UUID, uuid4
 from zoneinfo import ZoneInfo
 
 import pytest
+from botocore.exceptions import ClientError, EndpointConnectionError
+from PIL import Image
 from sqlalchemy import delete, func, select, text
 from sqlalchemy.exc import IntegrityError
 from werkzeug.security import generate_password_hash
@@ -15,6 +18,7 @@ from werkzeug.security import generate_password_hash
 from asistencia import admin as admin_module
 from asistencia import attendance, create_app, history
 from asistencia.attendance_service import shift_details
+from asistencia.evidence import MAX_PHOTO_BYTES, PhotoStorage
 from asistencia.models import Account, MarkRequest, Shift, Site, Worker
 
 TEST_PASSWORD = "contrasena-ficticia-para-pruebas"
@@ -117,6 +121,124 @@ def mark(client, token, operation, key=None, **extras):
         json={"operacion": operation, "clave_reintento": str(key or uuid4()), **extras},
         headers={"X-CSRF-Token": token},
     )
+
+
+def test_marks_with_private_photos_and_replays_after_lost_response(
+    app, sample, monkeypatch
+):
+    class S3:
+        def __init__(self):
+            self.objects = {}
+            self.unavailable = False
+            self.lost_response = False
+            self.uploads = 0
+
+        def put_object(self, **params):
+            self.uploads += 1
+            if self.unavailable:
+                raise EndpointConnectionError(endpoint_url="https://s3.example.test")
+            assert params["IfNoneMatch"] == "*"
+            assert params["ServerSideEncryption"] == "AES256"
+            assert params["ContentType"] == "image/webp"
+            assert "ACL" not in params
+            key = params["Key"]
+            if key in self.objects:
+                raise ClientError(
+                    {"ResponseMetadata": {"HTTPStatusCode": 412}}, "PutObject"
+                )
+            self.objects[key] = params["Body"]
+            if self.lost_response:
+                raise EndpointConnectionError(endpoint_url="https://s3.example.test")
+
+        def generate_presigned_url(self, method, *, Params, ExpiresIn):
+            assert method == "get_object"
+            assert Params["Key"] in self.objects
+            assert ExpiresIn == 60
+            return f"https://s3.example.test/{Params['Key']}?signature=ficticia"
+
+    s3 = S3()
+    storage = PhotoStorage("asistencia-test", "us-east-1")
+    monkeypatch.setattr(storage, "client", lambda: s3)
+    monkeypatch.setitem(app.extensions, "photo_storage", storage)
+    monkeypatch.setitem(app.config, "PHOTO_REQUEST_LIMIT", MAX_PHOTO_BYTES + 16 * 1024)
+    client = app.test_client()
+    token = login(client, sample.username)
+    now = datetime(2026, 11, 12, 13, tzinfo=UTC)
+    monkeypatch.setattr(attendance, "utc_now", lambda: now)
+    request_key = uuid4()
+    assert client.get("/api/asistencia").get_json()["requiere_foto"] is True
+
+    def submit_photo(operation, key, data, **fields):
+        return client.post(
+            "/api/asistencia/marcaciones",
+            data={
+                "operacion": operation,
+                "clave_reintento": str(key),
+                "foto": (BytesIO(data), "evidencia.jpg"),
+                **fields,
+            },
+            headers={"X-CSRF-Token": token},
+        )
+
+    assert (
+        mark(client, token, "entrada", request_key).get_json()["codigo"]
+        == "photo_required"
+    )
+    invalid = submit_photo("entrada", request_key, b"no es una foto")
+    assert invalid.status_code == 400
+    assert invalid.get_json()["codigo"] == "invalid_photo"
+    oversized = submit_photo("entrada", request_key, b"0" * (MAX_PHOTO_BYTES + 1))
+    assert oversized.status_code == 400
+    assert oversized.get_json()["codigo"] == "invalid_photo"
+    assert s3.uploads == 0
+
+    photo = BytesIO()
+    Image.new("RGB", (2000, 100), "blue").save(photo, format="JPEG")
+    photo_bytes = photo.getvalue()
+    s3.lost_response = True
+    failed = submit_photo("entrada", request_key, photo_bytes)
+    assert failed.status_code == 503
+    assert client.get("/api/asistencia").get_json()["jornadas"] == []
+    s3.lost_response = False
+    entry = submit_photo("entrada", request_key, photo_bytes)
+    assert entry.status_code == 200
+    assert mark(client, token, "entrada", request_key).get_json() == entry.get_json()
+    shift = entry.get_json()["jornada"]
+    assert shift["tiene_foto_entrada"] is True
+    assert shift["tiene_foto_salida"] is False
+    assert s3.uploads == 2
+    assert len(s3.objects) == 1
+    with Image.open(BytesIO(next(iter(s3.objects.values())))) as normalized:
+        assert normalized.format == "WEBP"
+        assert normalized.size == (1600, 80)
+
+    now += timedelta(hours=8)
+    exit_key = uuid4()
+    s3.unavailable = True
+    failed = submit_photo("salida", exit_key, photo_bytes, jornada_id=shift["id"])
+    assert failed.status_code == 503
+    assert (
+        client.get("/api/asistencia").get_json()["jornada_abierta"]["id"] == shift["id"]
+    )
+    s3.unavailable = False
+    exit_mark = submit_photo("salida", exit_key, photo_bytes, jornada_id=shift["id"])
+    assert exit_mark.status_code == 200
+    assert exit_mark.get_json()["jornada"]["tiene_foto_salida"] is True
+    assert len(s3.objects) == 2
+
+    entry_path = f"/api/asistencia/jornadas/{shift['id']}/fotos/entrada"
+    exit_path = f"/api/asistencia/jornadas/{shift['id']}/fotos/salida"
+    response = client.get(entry_path)
+    assert response.status_code == 302
+    assert response.headers["Cache-Control"] == "no-store"
+    assert response.headers["Location"].startswith("https://s3.example.test/")
+    assert app.test_client().get(exit_path).status_code == 401
+    other = app.test_client()
+    login(other, sample.other_username)
+    assert other.get(exit_path).status_code == 404
+    administrator = app.test_client()
+    login(administrator, sample.admin_username)
+    assert administrator.get(exit_path).status_code == 302
 
 
 def test_session_credentials_and_csrf(app, sample):

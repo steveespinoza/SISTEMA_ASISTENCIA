@@ -59,6 +59,8 @@ def shift_details(shift: Shift, site_name: str, day_start: datetime) -> dict:
         "sede": site_name,
         "entrada": entry.isoformat(),
         "salida": exit_time.isoformat() if exit_time is not None else None,
+        "tiene_foto_entrada": shift.foto_entrada is not None,
+        "tiene_foto_salida": shift.foto_salida is not None,
         "estado": (
             "cerrada"
             if exit_time is not None
@@ -134,6 +136,7 @@ def apply_mark(
     timezone: ZoneInfo,
     *,
     expected_shift_id: UUID | None,
+    save_photo: Callable[[], str] | None,
 ) -> tuple[Shift | None, MarkOutcome]:
     if not worker.activo:
         return None, MarkOutcome(
@@ -169,7 +172,12 @@ def apply_mark(
             is not None
         ):
             return None, conflict("Ya registraste tu asistencia de hoy.")
-        shift = Shift(trabajador_id=worker.id, sede_id=worker.sede_id, entrada=instant)
+        shift = Shift(
+            trabajador_id=worker.id,
+            sede_id=worker.sede_id,
+            entrada=instant,
+            foto_entrada=save_photo() if save_photo else None,
+        )
         db.add(shift)
         db.flush()
     else:
@@ -181,6 +189,8 @@ def apply_mark(
             )
         if instant < shift.entrada:
             return None, conflict("La hora de salida es anterior a la entrada.")
+        if save_photo:
+            shift.foto_salida = save_photo()
         shift.salida = instant
 
     site = db.get_one(Site, shift.sede_id)
@@ -201,6 +211,7 @@ def register_mark(
     timezone: ZoneInfo,
     *,
     expected_shift_id: UUID | None,
+    save_photo: Callable[[], str] | None = None,
 ) -> MarkOutcome:
     # Serializa las marcaciones de este trabajador hasta confirmar la transacción.
     worker = get_worker(db, account_id, lock=True)
@@ -218,7 +229,13 @@ def register_mark(
         return MarkOutcome(previous.resultado, previous.estado_http)
 
     shift, outcome = apply_mark(
-        db, worker, operation, clock, timezone, expected_shift_id=expected_shift_id
+        db,
+        worker,
+        operation,
+        clock,
+        timezone,
+        expected_shift_id=expected_shift_id,
+        save_photo=save_photo,
     )
     db.add(
         MarkRequest(

@@ -21,6 +21,8 @@ export type Shift = {
   sede: string;
   entrada: string;
   salida: string | null;
+  tiene_foto_entrada?: boolean;
+  tiene_foto_salida?: boolean;
   estado: "abierta" | "cerrada" | "sin_salida";
   duracion_segundos: number | null;
 };
@@ -34,6 +36,7 @@ export type AttendanceView = {
   actualizar_en_ms: number;
   jornadas: Shift[];
   zona_horaria: string;
+  requiere_foto: boolean;
 };
 
 export type MarkResult = {
@@ -51,8 +54,8 @@ export class ApiProblem extends Error {
   }
 }
 
-export async function requestJson<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const timeout = AbortSignal.timeout(8000);
+export async function requestJson<T>(path: string, options: RequestInit = {}, timeoutMs = 8000): Promise<T> {
+  const timeout = AbortSignal.timeout(timeoutMs);
   const response = await fetch(path, {
     ...options,
     cache: "no-store",
@@ -102,7 +105,17 @@ export function getAttendance(signal: AbortSignal) {
   return requestJson<AttendanceView>("/api/asistencia", { signal });
 }
 
-export function markAttendance(csrfToken: string, attempt: MarkAttempt) {
+export function markAttendance(csrfToken: string, attempt: MarkAttempt, photo: File | null) {
+  if (photo) {
+    const body = new FormData();
+    body.set("operacion", attempt.operacion);
+    body.set("clave_reintento", attempt.clave_reintento);
+    if (attempt.jornada_id) body.set("jornada_id", attempt.jornada_id);
+    body.set("foto", photo);
+    return requestJson<MarkResult>("/api/asistencia/marcaciones", {
+      method: "POST", headers: { "X-CSRF-Token": csrfToken }, body,
+    }, 45_000);
+  }
   return sendJson<MarkResult>("/api/asistencia/marcaciones", csrfToken, attempt);
 }
 
