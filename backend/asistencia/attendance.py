@@ -53,7 +53,6 @@ def mark() -> tuple[Response, int]:
         if storage is None:
             raise ApiError(400, "La marcación con foto no está habilitada.")
         request.max_content_length = current_app.config["PHOTO_REQUEST_LIMIT"]
-        request.max_form_memory_size = 64 * 1024
         request.max_form_parts = 4
         data = request.form.to_dict()
         photo = request.files.get("foto")
