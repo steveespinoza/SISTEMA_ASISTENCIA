@@ -193,8 +193,9 @@ def test_marks_with_private_photos_and_replays_after_lost_response(
     assert s3.uploads == 0
 
     photo = BytesIO()
-    Image.new("RGB", (2000, 100), "blue").save(photo, format="JPEG")
+    Image.effect_noise((2000, 100), 80).save(photo, format="JPEG", quality=100)
     photo_bytes = photo.getvalue()
+    assert 128 * 1024 < len(photo_bytes) < MAX_PHOTO_BYTES
     s3.lost_response = True
     failed = submit_photo("entrada", request_key, photo_bytes)
     assert failed.status_code == 503
