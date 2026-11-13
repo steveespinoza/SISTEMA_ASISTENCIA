@@ -19,7 +19,8 @@ El [alcance del MVP](alcance-mvp.md) recoge las reglas iniciales y las funciones
 | Aplicación | El [flujo local](../README.md#desarrollo-local) permite iniciar sesión, marcar entrada y salida y consultar el historial propio. La [salida](casos-de-uso.md#cu-03-registrar-salida) comprueba que la jornada mostrada sigue abierta. Alembic crea el esquema y el comando de demo carga una cuenta ficticia. |
 | Administración | El [alta inicial](../README.md#gestión-administrativa) habilita la primera cuenta administrativa. Su vista permite crear y editar sedes, registrar y reasignar trabajadores y desactivarlos cuando su jornada esté cerrada. |
 | Historial administrativo | El administrador puede [consultar jornadas](casos-de-uso.md#cu-07-consultar-asistencia-del-personal) abiertas y cerradas por fecha de entrada, trabajador y sede registrada. El período usa la zona horaria de la empresa. |
+| Base de desarrollo | Flask y Vite se ejecutan en local y pueden usar PostgreSQL en Neon. El [README](../README.md#configurar-la-base-de-datos) explica cómo configurar la conexión directa. |
 
 ## Siguiente paso
 
-El alcance funcional del MVP está implementado en local. El siguiente hito es preparar el despliegue de la demo pública.
+El alcance funcional del MVP está implementado y se ejecuta en local. El despliegue público queda pospuesto.
