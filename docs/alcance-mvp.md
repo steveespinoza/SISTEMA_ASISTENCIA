@@ -14,7 +14,9 @@ La base permite que una empresa registre quién trabajó, cuándo marcó y en qu
 
 ## Extensiones por solicitud
 
-Kiosco, rol delegado, geocerca, fotos y almacenamiento de evidencia, correcciones manuales de marcación, horarios y reglas de planilla, préstamos entre sedes, historial de asignaciones con vigencia, formatos de exportación y catálogos particulares.
+**Fotos de marcación.** Cuando la instalación configura Amazon S3, cada entrada y salida nueva requiere una foto. El trabajador puede abrir sus propias fotos y el administrador puede consultarlas desde el historial. Las jornadas existentes conservan sus datos.
+
+Otras extensiones: kiosco, rol delegado, geocerca, correcciones manuales de marcación, horarios y reglas de planilla, préstamos entre sedes, historial de asignaciones con vigencia, formatos de exportación y catálogos particulares.
 
 Si se incorpora una política de jornada o planilla, define su vigencia y cómo reproducir el cálculo de un período pasado. El tiempo transcurrido del MVP es un registro de asistencia. El cálculo de horas pagables pertenece a la extensión de planilla.
 

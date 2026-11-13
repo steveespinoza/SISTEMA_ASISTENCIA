@@ -86,6 +86,31 @@ Puedes editar los datos del trabajador y cambiar su sede para futuras entradas. 
 
 En **Historial**, elige las fechas de inicio y fin y, si hace falta, filtra por trabajador o sede. El período incluye ambas fechas según la hora de entrada en la zona horaria de la empresa. Una jornada **Sin salida** conserva la entrada y la sede. Su duración queda vacía.
 
+### Fotos de marcación con Amazon S3
+
+Con `AWS_S3_BUCKET` configurado, cada entrada y salida nueva requiere una foto JPG, PNG o WebP de hasta 12 MB. Desde un celular compatible, el selector propone la cámara frontal. El servidor reduce la imagen a un máximo de 1600 px por lado, elimina sus metadatos y guarda una copia WebP cifrada en S3. El trabajador puede abrir sus fotos y el administrador puede consultarlas en el historial mediante enlaces que vencen en 60 segundos.
+
+1. Crea un bucket S3 de propósito general en `us-east-1` con **Bloquear todo el acceso público** habilitado y **Propiedad de objetos: propietario del bucket obligatorio**. El navegador envía la imagen a Flask, por lo que el bucket puede conservar su configuración predeterminada de CORS. [Bloquear acceso público](https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html)
+2. Concede al rol de la aplicación los permisos de esta política IAM. Sustituye `NOMBRE_DEL_BUCKET` por el bucket de la instalación.
+
+   ```json
+   {
+     "Version": "2012-10-17",
+     "Statement": [
+       {
+         "Effect": "Allow",
+         "Action": ["s3:PutObject", "s3:GetObject"],
+         "Resource": "arn:aws:s3:::NOMBRE_DEL_BUCKET/asistencia/evidencias/*"
+       }
+     ]
+   }
+   ```
+
+3. Define `AWS_S3_BUCKET` y `AWS_REGION` en `.env`. Boto3 usa las credenciales del entorno o un rol de AWS. En local, puedes definir `AWS_PROFILE=asistencia` si ese perfil existe en tu equipo. [Credenciales de Boto3](https://docs.aws.amazon.com/boto3/latest/guide/credentials.html)
+4. Ejecuta `uv sync --locked` y `uv run --locked alembic upgrade head` desde `backend/`. Reinicia Flask. Si hay un proxy delante de Flask, permite solicitudes de al menos 13 MB en la ruta de marcación.
+
+Las jornadas existentes conservan sus horas y muestran enlaces solo para las fotos disponibles. Con el bucket vacío en la configuración, la instalación puede funcionar con marcación sin foto. Si falla la subida con S3 habilitado, la operación se puede reintentar y la marcación queda pendiente hasta que se guarde su evidencia.
+
 ### Verificación
 
 Desde `backend/`:

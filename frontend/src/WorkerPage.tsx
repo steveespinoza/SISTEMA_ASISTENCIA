@@ -43,6 +43,7 @@ function History({ shifts, formatter }: { shifts: Shift[]; formatter: Intl.DateT
 export function WorkerPage({ username, csrfToken, onSessionProblem }: Props) {
   const [view, setView] = useState<AttendanceView | null>(null);
   const [pending, setPending] = useState(() => getPendingMark(username));
+  const [photo, setPhoto] = useState<{ file: File; preview: string } | null>(null);
   const [confirmation, setConfirmation] = useState<MarkResult | null>(null);
   const [actionError, setActionError] = useState("");
   const [loadError, setLoadError] = useState("");
@@ -78,6 +79,11 @@ export function WorkerPage({ username, csrfToken, onSessionProblem }: Props) {
     return () => window.clearTimeout(timer);
   }, [view]);
 
+  useEffect(() => {
+    if (!photo) return;
+    return () => URL.revokeObjectURL(photo.preview);
+  }, [photo]);
+
   function reload() {
     setLoadError("");
     setView(null);
@@ -93,6 +99,7 @@ export function WorkerPage({ username, csrfToken, onSessionProblem }: Props) {
 
   async function submitMark() {
     if (!view || busy || (!pending && !canMark)) return;
+    if (view.requiere_foto && !pending && !photo) return;
     const openShift = view.jornada_abierta;
     const attempt: MarkAttempt = pending ?? {
       operacion: openShift ? "salida" : "entrada",
@@ -104,8 +111,9 @@ export function WorkerPage({ username, csrfToken, onSessionProblem }: Props) {
     setActionError("");
     setConfirmation(null);
     try {
-      const result = await markAttendance(csrfToken, attempt);
+      const result = await markAttendance(csrfToken, attempt, view.requiere_foto ? photo?.file ?? null : null);
       remember(null);
+      setPhoto(null);
       setConfirmation(result);
       reload();
     } catch (error) {
@@ -114,8 +122,16 @@ export function WorkerPage({ username, csrfToken, onSessionProblem }: Props) {
       } else if (error instanceof ApiProblem && error.code &&
         ["request_rejected", "worker_forbidden", "attendance_conflict"].includes(error.code)) {
         remember(null);
+        setPhoto(null);
         setActionError(error.message);
         reload();
+      } else if (error instanceof ApiProblem && error.code === "photo_required") {
+        setActionError("La marcación sigue pendiente. Agrega la foto y vuelve a intentar.");
+      } else if (error instanceof ApiProblem && error.code === "invalid_photo") {
+        setPhoto(null);
+        setActionError(error.message);
+      } else if (error instanceof ApiProblem && error.code === "photo_storage_unavailable") {
+        setActionError(error.message);
       } else {
         setActionError("No pudimos confirmar la marcación. Vuelve a intentar la misma solicitud.");
       }
@@ -159,8 +175,34 @@ export function WorkerPage({ username, csrfToken, onSessionProblem }: Props) {
             {pending && !busy && !actionError && (
               <p className="summary" role="status">Tienes una marcación pendiente de confirmar.</p>
             )}
+            {view.requiere_foto && (pending || canMark) && (
+              <div className="mark-photo">
+                <label htmlFor="mark-photo">Foto de {pending?.operacion ?? (view.jornada_abierta ? "salida" : "entrada")}</label>
+                <input
+                  id="mark-photo"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  capture="user"
+                  disabled={busy}
+                  onChange={(event) => {
+                    const selected = event.currentTarget.files?.[0];
+                    if (!selected) return;
+                    event.currentTarget.value = "";
+                    if (selected.size > 12 * 1024 * 1024) {
+                      setPhoto(null);
+                      setActionError("La foto supera el límite de 12 MB.");
+                      return;
+                    }
+                    setPhoto({ file: selected, preview: URL.createObjectURL(selected) });
+                    setActionError("");
+                  }}
+                />
+                {photo && <img src={photo.preview} alt="Vista previa de la foto de marcación" />}
+              </div>
+            )}
             {(pending || canMark) && (
-              <button type="button" onClick={submitMark} disabled={busy}>
+              <button type="button" onClick={submitMark}
+                disabled={busy || (view.requiere_foto && !pending && !photo)}>
                 {busy ? "Enviando…" : pending ? "Reintentar " + pending.operacion :
                   view.jornada_abierta ? "Registrar salida" : "Registrar entrada"}
               </button>

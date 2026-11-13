@@ -34,6 +34,10 @@ El sistema registra la asistencia de una empresa con varias sedes. El [alcance d
 | RQ-02 | El flujo de marcación se puede completar desde el celular. La interfaz distingue carga, confirmación y resultado sin confirmar. | Completar entrada y salida en una pantalla estrecha. Simular una respuesta perdida y verificar que se pueda reintentar la misma solicitud. |
 | RQ-03 | El primer flujo se puede reproducir desde una base PostgreSQL vacía. | Aplicar las migraciones, cargar datos ficticios y completar inicio de sesión, entrada, salida y consulta del historial. |
 
+## Evidencia fotográfica
+
+En instalaciones con Amazon S3 configurado, cada marcación nueva requiere una foto válida. El trabajador consulta solo las evidencias de sus jornadas y el administrador puede consultarlas desde el historial. Si falla el almacenamiento, se puede reintentar la misma marcación. Si la API ya confirmó el registro, el reintento recupera su respuesta original aunque el navegador ya no tenga el archivo.
+
 ## Sesión y cuenta de demostración
 
 La sesión web tiene una vigencia de ocho horas. La demo usa una cuenta ficticia creada con un comando local. En una instalación nueva, el operador crea la primera cuenta administrativa con `crear-administrador`. El administrador registra a los trabajadores con usuario, contraseña inicial y sede. [Decisión sobre la sesión web](decisiones/0001-sesion-web.md)

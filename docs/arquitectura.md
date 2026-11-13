@@ -63,6 +63,8 @@ erDiagram
         timestamptz entrada
         timestamptz salida "Vacía si no se registró la salida"
         boolean sin_salida "Marca una jornada vencida"
+        text foto_entrada "Clave del objeto S3, si hay foto"
+        text foto_salida "Clave del objeto S3, si hay foto"
     }
 
     SOLICITUD_MARCACION {
@@ -105,3 +107,5 @@ sequenceDiagram
 ```
 
 Si la respuesta se pierde, la interfaz conserva la clave para repetir la misma operación. La [primera migración](../backend/migrations/versions/20261112_0001_crear_tablas_de_asistencia.py) crea las tablas y el índice de jornadas abiertas.
+
+En una instalación con S3, la API comprueba la jornada y los permisos antes de subir la foto. Luego guarda su clave junto con la marcación y el resultado del reintento en PostgreSQL. La clave en S3 depende de la cuenta, la solicitud y la imagen normalizada. Esto permite recuperar una carga previa si se pierde la respuesta de S3. Si PostgreSQL no confirma la transacción después de una carga exitosa, la foto puede quedar sin referencia hasta que se reintente con el mismo archivo. El acceso al objeto requiere un enlace temporal emitido tras verificar el acceso a la jornada.

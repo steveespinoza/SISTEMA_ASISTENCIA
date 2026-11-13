@@ -70,6 +70,8 @@ class Shift(Base):
     entrada: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     salida: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     sin_salida: Mapped[bool] = mapped_column(server_default=text("false"))
+    foto_entrada: Mapped[str | None] = mapped_column(Text)
+    foto_salida: Mapped[str | None] = mapped_column(Text)
 
 
 class MarkRequest(Base):

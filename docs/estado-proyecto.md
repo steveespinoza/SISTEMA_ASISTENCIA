@@ -21,7 +21,8 @@ El [alcance del MVP](alcance-mvp.md) recoge las reglas iniciales y las funciones
 | Historial administrativo | El administrador puede [consultar jornadas](casos-de-uso.md#cu-07-consultar-asistencia-del-personal) abiertas y cerradas por fecha de entrada, trabajador y sede registrada. El período usa la zona horaria de la empresa. |
 | Base de desarrollo | Flask y Vite se ejecutan en local y pueden usar PostgreSQL en Neon. El [README](../README.md#configurar-la-base-de-datos) explica cómo configurar la conexión directa. |
 | Asistencia diaria | Se admite una asistencia por día en la zona horaria de la empresa. Las jornadas vencidas quedan como **Sin salida** y permiten marcar una nueva entrada. |
+| Fotos de marcación | Entrada y salida verificadas en el navegador con PostgreSQL 17 y un bucket real de S3. El trabajador y el administrador pudieron consultar las fotos. Otro trabajador y una solicitud directa a S3 sin firma recibieron una denegación. La migración `20261112_0003` está aplicada en Neon. |
 
 ## Siguiente paso
 
-El alcance funcional del MVP está implementado y se ejecuta en local. El despliegue público queda pospuesto.
+El alcance funcional del MVP está implementado y se ejecuta en local. La conexión a S3 está configurada y probada. El despliegue público queda pospuesto.

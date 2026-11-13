@@ -22,6 +22,8 @@ Con credenciales inválidas, el sistema informa el error y mantiene el formulari
 
 Si ya registró la entrada del día, una segunda entrada se rechaza. Una jornada del día anterior que quedó pendiente figura como **Sin salida** y permite registrar la entrada del día actual. Si la respuesta se pierde, el trabajador puede reintentar la misma solicitud y recuperar su confirmación.
 
+En una instalación con S3 configurado, el trabajador toma o selecciona una foto antes de registrar la entrada. La API valida y guarda la foto antes de confirmar.
+
 ## CU-03 Registrar salida
 
 **Actor** · Trabajador. **Requisitos** · RF-03, RN-03, RN-04, RN-05, RN-06 y RQ-02.
@@ -31,6 +33,8 @@ Si ya registró la entrada del día, una segunda entrada se rechaza. Una jornada
 3. La pantalla confirma la salida y el historial muestra la jornada cerrada.
 
 Si la jornada indicada ya se cerró o cambió el día, la pantalla muestra el motivo del rechazo y actualiza la asistencia. El reintento de una salida ya registrada recupera la confirmación original.
+
+En una instalación con S3 configurado, el trabajador adjunta una foto para la salida. Si falla la carga de la evidencia, la jornada sigue abierta y se puede reintentar.
 
 ## CU-04 Consultar historial propio
 

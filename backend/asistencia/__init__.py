@@ -13,6 +13,7 @@ from asistencia.auth import auth_api
 from asistencia.config import get_database_url, load_local_env
 from asistencia.database import create_database_engine
 from asistencia.demo import load_demo
+from asistencia.evidence import MAX_PHOTO_BYTES, PhotoStorage, PhotoStorageUnavailable
 from asistencia.health import health_api
 from asistencia.http import ApiError
 
@@ -48,6 +49,12 @@ def create_app(
     engine = create_database_engine(database_url or get_database_url())
     app.extensions["database_engine"] = engine
     app.extensions["database_sessions"] = sessionmaker(bind=engine)
+    bucket = os.getenv("AWS_S3_BUCKET", "").strip()
+    if bucket:
+        app.extensions["photo_storage"] = PhotoStorage(
+            bucket, os.getenv("AWS_REGION") or None
+        )
+        app.config["PHOTO_REQUEST_LIMIT"] = MAX_PHOTO_BYTES + 16 * 1024
     app.register_blueprint(health_api)
     app.register_blueprint(auth_api)
     app.register_blueprint(attendance_api)
@@ -63,6 +70,18 @@ def create_app(
     def handle_database_error(_error: OperationalError) -> tuple[Response, int]:
         app.logger.warning("PostgreSQL no está disponible.")
         return jsonify(error="El servicio no está disponible en este momento."), 503
+
+    @app.errorhandler(PhotoStorageUnavailable)
+    def handle_photo_storage_error(
+        error: PhotoStorageUnavailable,
+    ) -> tuple[Response, int]:
+        app.logger.warning(
+            "S3 no está disponible para la evidencia de asistencia.", exc_info=error
+        )
+        return jsonify(
+            error="No se pudo acceder al almacenamiento de fotos. Inténtalo otra vez.",
+            codigo="photo_storage_unavailable",
+        ), 503
 
     @app.after_request
     def prevent_caching(response: Response) -> Response:

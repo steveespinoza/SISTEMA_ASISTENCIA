@@ -127,6 +127,34 @@
   margin: 0;
 }
 
+.mark-photo {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 0.5rem;
+}
+
+.mark-photo label {
+  font-weight: 650;
+}
+
+.mark-photo input {
+  width: 100%;
+  min-width: 0;
+  font: inherit;
+}
+
+.mark-photo img {
+  width: min(100%, 15rem);
+  max-height: 12rem;
+  object-fit: contain;
+  object-position: left;
+  border-radius: 0.55rem;
+}
+
+.shift-details a {
+  color: var(--accent);
+}
+
 .history-section {
   margin-top: 2rem;
 }
@@ -205,5 +233,10 @@
   .attendance-card p[role="status"],
   .attendance-card .form-error {
     grid-column: 1 / -1;
+  }
+
+  .mark-photo + button {
+    grid-column: 1 / -1;
+    justify-self: start;
   }
 }
